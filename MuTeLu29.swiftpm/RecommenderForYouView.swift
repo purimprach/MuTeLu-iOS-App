@@ -58,7 +58,7 @@ struct RecommenderForYouView: View {
                         flowManager.currentScreen = .editProfile
                     }
                 }
-                
+                DailyBannerView()
                 BuddhistDayBanner()
                 ReligiousHolidayBanner()
                 Spacer()
