@@ -21,8 +21,8 @@ struct MainMenuView: View {
         ScrollView {
             VStack(spacing: 16) {
                 header
-                //BannerStack(showBanner: $showBanner, currentMember: currentMember)
-                    //.environmentObject(language)
+                BannerStack(showBanner: $showBanner, currentMember: currentMember)
+                    .environmentObject(language)
                 
                 // 3) Near you (show 1, see all -> .recommendation)
                 MiniSection(
@@ -79,7 +79,7 @@ struct MainMenuView: View {
     }
     private var header: some View {
         GreetingHeaderCard(
-            displayName: currentMember?.fullName,      
+            displayName: currentMember?.fullName,           // 
             displayEmail: currentMember?.email,         
             guestName: language.localized("ผู้ใช้รับเชิญ", "Guest user"),
             subtitle: language.localized("ยินดีต้อนรับกลับ", "Welcome back")
@@ -110,8 +110,8 @@ private struct BannerStack: View {
                     .environmentObject(language)
                 ReligiousHolidayBanner()
                     .environmentObject(language)
-                //RecommendedTempleBanner(currentMember: currentMember) 
-                  //  .environmentObject(language)
+                RecommendedTempleBanner(currentMember: currentMember) 
+                    .environmentObject(language)
             }
         }
     }

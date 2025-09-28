@@ -47,19 +47,50 @@ struct LocalizedText: Codable {
 extension SacredPlace {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.id = UUID()
-        self.nameTH = try container.decode(String.self, forKey: .nameTH)
-        self.nameEN = try container.decode(String.self, forKey: .nameEN)
+        
+        // Read all properties first
+        let nameTH = try container.decode(String.self, forKey: .nameTH)
+        let nameEN = try container.decode(String.self, forKey: .nameEN)
+        let latitude = try container.decode(Double.self, forKey: .latitude)
+        let longitude = try container.decode(Double.self, forKey: .longitude)
+        
+        // Create deterministic UUID based on unique place properties
+        let uniqueString = "\(nameTH)-\(nameEN)-\(latitude)-\(longitude)"
+        let deterministicUUIDString = uniqueString.deterministicUUID()
+        self.id = UUID(uuidString: deterministicUUIDString) ?? UUID()
+        
+        // Debug logging
+        print("🏛️ Creating SacredPlace:")
+        print("   Name: \(nameTH)")
+        print("   Unique String: \(uniqueString)")
+        print("   Generated UUID: \(self.id.uuidString)")
+        
+        self.nameTH = nameTH
+        self.nameEN = nameEN
         self.descriptionTH = try container.decode(String.self, forKey: .descriptionTH)
         self.descriptionEN = try container.decode(String.self, forKey: .descriptionEN)
         self.locationTH = try container.decode(String.self, forKey: .locationTH)
         self.locationEN = try container.decode(String.self, forKey: .locationEN)
-        self.latitude = try container.decode(Double.self, forKey: .latitude)
-        self.longitude = try container.decode(Double.self, forKey: .longitude)
+        self.latitude = latitude
+        self.longitude = longitude
         self.imageName = try container.decode(String.self, forKey: .imageName)
         self.tags = try container.decode([String].self, forKey: .tags) // ⭐️ อ่าน tags จาก JSON
         self.rating = try container.decode(Double.self, forKey: .rating)
         self.details = try container.decode([DetailItem].self, forKey: .details)
+    }
+}
+
+// Helper extension to create deterministic UUID from string
+extension String {
+    func deterministicUUID() -> String {
+        let hash = self.hash
+        let uuid = String(format: "%08X-%04X-%04X-%04X-%012X", 
+                         abs(hash) & 0xFFFFFFFF,
+                         abs(hash >> 32) & 0xFFFF,
+                         abs(hash >> 48) & 0xFFFF,
+                         abs(hash >> 64) & 0xFFFF,
+                         abs(hash >> 80) & 0xFFFFFFFFFFFF)
+        return uuid
     }
 }
 

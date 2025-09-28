@@ -58,10 +58,6 @@ struct RecommenderForYouView: View {
                         flowManager.currentScreen = .editProfile
                     }
                 }
-                
-                BuddhistDayBanner()
-                ReligiousHolidayBanner()
-                Spacer()
             }
             .padding(.vertical, 12)
             .padding(.horizontal, 16)
@@ -152,23 +148,17 @@ private struct TempleBannerCard: View {
 }
 
 private struct MissingBirthdayCard: View {
-    @EnvironmentObject var language: AppLanguage
     var onEditProfile: () -> Void
-    
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Label(language.localized("ยังไม่มีวันเกิดในโปรไฟล์",
-                                     "No birthday in profile"),
-                  systemImage: "calendar.badge.exclamationmark")
-            .font(.headline)
-            
-            Text(language.localized("เพิ่มวันเกิดเพื่อรับคำแนะนำวัดที่ตรงกับวันเกิดของคุณ",
-                                    "Add your birthday to get temple recommendations tailored to your weekday"))
-            .font(.subheadline)
-            .foregroundStyle(.secondary)
+            Label("ยังไม่มีวันเกิดในโปรไฟล์", systemImage: "calendar.badge.exclamationmark")
+                .font(.headline)
+            Text("เพิ่มวันเกิดเพื่อรับคำแนะนำวัดที่ตรงกับวันเกิดของคุณ")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
             
             Button(action: onEditProfile) {
-                Text(language.localized("แก้ไขโปรไฟล์", "Edit Profile"))
+                Text("แก้ไขโปรไฟล์")
                     .fontWeight(.bold)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)

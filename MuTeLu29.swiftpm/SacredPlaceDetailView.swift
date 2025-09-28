@@ -12,6 +12,9 @@ struct SacredPlaceDetailView: View {
     @EnvironmentObject var checkInStore: CheckInStore
     @EnvironmentObject var memberStore: MemberStore
     @AppStorage("loggedInEmail") var loggedInEmail: String = ""
+    @State private var refreshTrigger = UUID()
+    @State private var countdownTimer: Timer?
+    @State private var timeRemaining: TimeInterval = 0
     
     var body: some View {
         ScrollView {
@@ -104,27 +107,45 @@ struct SacredPlaceDetailView: View {
                     
                     //ปุ่มเช็คอิน
                     VStack {
-                        if checkInStore.hasCheckedInToday(email: loggedInEmail, placeID: place.id.uuidString) {
-                            Label("✅ คุณเช็คอินแล้ววันนี้", systemImage: "checkmark.seal.fill")
-                                .foregroundColor(.green)
-                                .padding()
-                                .frame(maxWidth: .infinity)
-                                .background(Color.gray.opacity(0.2))
-                                .cornerRadius(12)
+                        if checkInStore.hasCheckedInRecently(email: loggedInEmail, placeID: place.id.uuidString) {
+                            VStack(spacing: 8) {
+                                Label("✅ เช็คอินแล้ว", systemImage: "checkmark.seal.fill")
+                                    .foregroundColor(.green)
+                                
+                                if timeRemaining > 0 {
+                                    Text("เช็คอินครั้งถัดไปได้ในอีก: \(formatTime(timeRemaining))")
+                                        .font(.caption)
+                                        .foregroundColor(.orange)
+                                        .fontWeight(.medium)
+                                } else {
+                                    Text("สามารถเช็คอินใหม่ได้แล้ว")
+                                        .font(.caption)
+                                        .foregroundColor(.blue)
+                                        .fontWeight(.medium)
+                                }
+                            }
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .background(Color.gray.opacity(0.2))
+                            .cornerRadius(12)
                         } else if isUserNearPlace() {
                             Button(action: {
-                                let newRecord = CheckInRecord(
-                                    placeID: place.id.uuidString,
-                                    placeNameTH: place.nameTH,
-                                    placeNameEN: place.nameEN,
-                                    meritPoints: 15,
-                                    memberEmail: loggedInEmail,
-                                    date: Date(),
-                                    latitude: place.latitude,
-                                    longitude: place.longitude
-                                )
-                                checkInStore.add(record: newRecord)
-                                showCheckinAlert = true
+                                // ตรวจสอบอีกครั้งก่อนเช็คอิน
+                                if !checkInStore.hasCheckedInRecently(email: loggedInEmail, placeID: place.id.uuidString) {
+                                    let newRecord = CheckInRecord(
+                                        placeID: place.id.uuidString,
+                                        placeNameTH: place.nameTH,
+                                        placeNameEN: place.nameEN,
+                                        meritPoints: 15,
+                                        memberEmail: loggedInEmail,
+                                        date: Date(),
+                                        latitude: place.latitude,
+                                        longitude: place.longitude
+                                    )
+                                    checkInStore.add(record: newRecord)
+                                    refreshTrigger = UUID() // Force UI refresh
+                                    showCheckinAlert = true
+                                }
                             }) {
                                 Label("เช็คอินเพื่อรับแต้ม", systemImage: "checkmark.seal.fill")
                                     .foregroundColor(.white)
@@ -150,6 +171,7 @@ struct SacredPlaceDetailView: View {
                         }
                     }
                     .padding(.horizontal)
+                    .id(refreshTrigger) // Force refresh when refreshTrigger changes
                     
                     // ✅ ปุ่มติดต่อ
                     Button(action: {
@@ -188,6 +210,15 @@ struct SacredPlaceDetailView: View {
         }
         .onAppear {
             locationManager.userLocation = CLLocation(latitude: 13.738444, longitude: 100.531750)
+            refreshTrigger = UUID() // Force UI refresh
+            print("🔄 SacredPlaceDetailView appeared for place: \(place.nameTH)")
+            print("🔄 Current user email: \(loggedInEmail)")
+            print("🔄 PlaceID: \(place.id.uuidString)")
+            
+            startCountdownTimer()
+        }
+        .onDisappear {
+            stopCountdownTimer()
         }
     }
     
@@ -202,7 +233,7 @@ struct SacredPlaceDetailView: View {
         let distance = userLocation.distance(from: placeLocation)
         //print("📍 ระยะห่างระหว่างคุณกับ \(place.nameTH): \(distance) เมตร")
         
-        return distance < 1000
+        return distance < 100
     }
         
     func openInMaps() {
@@ -228,6 +259,36 @@ struct SacredPlaceDetailView: View {
         if let url = URL(string: "https://page.line.me/chulalongkornu"), UIApplication.shared.canOpenURL(url) {
             UIApplication.shared.open(url)
         }
+    }
+    
+    func startCountdownTimer() {
+        updateTimeRemaining()
+        
+        countdownTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+            updateTimeRemaining()
+        }
+    }
+    
+    func stopCountdownTimer() {
+        countdownTimer?.invalidate()
+        countdownTimer = nil
+    }
+    
+    func updateTimeRemaining() {
+        if let remaining = checkInStore.timeRemainingUntilNextCheckIn(email: loggedInEmail, placeID: place.id.uuidString) {
+            timeRemaining = remaining
+            if remaining <= 0 {
+                refreshTrigger = UUID() // Force UI refresh when countdown reaches 0
+            }
+        } else {
+            timeRemaining = 0
+        }
+    }
+    
+    func formatTime(_ timeInterval: TimeInterval) -> String {
+        let minutes = Int(timeInterval) / 60
+        let seconds = Int(timeInterval) % 60
+        return String(format: "%02d:%02d", minutes, seconds)
     }
 }
 struct ExpandableTextView: View {
