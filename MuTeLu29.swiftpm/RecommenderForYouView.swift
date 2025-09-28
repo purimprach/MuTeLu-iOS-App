@@ -58,6 +58,10 @@ struct RecommenderForYouView: View {
                         flowManager.currentScreen = .editProfile
                     }
                 }
+                DailyBannerView()
+                BuddhistDayBanner()
+                ReligiousHolidayBanner()
+                Spacer()
             }
             .padding(.vertical, 12)
             .padding(.horizontal, 16)
