@@ -1,55 +1,93 @@
+import Foundation
 import MapKit
+import CoreLocation
 
-final class RouteDistanceService {
+struct RouteDistanceResult {
+    let place: SacredPlace
+    let meters: CLLocationDistance?   // nil = ไม่มีข้อมูล
+}
+
+enum TransportMode {
+    case driving
+    case walking
+}
+
+actor RouteDistanceService {
     static let shared = RouteDistanceService()
-    private init() {}
-    
-    enum Mode { case driving, walking }
-    
-    struct Result {
-        let place: SacredPlace
-        let meters: Double
-        let seconds: Double
-    }
     
     func batchDistances(
         from origin: CLLocationCoordinate2D,
         places: [SacredPlace],
-        mode: Mode
-    ) async -> [Result] {
-        await withTaskGroup(of: Result.self, returning: [Result].self) { group in
-            for p in places {
-                // ⬇️ ใช้ตรง ๆ เพราะ lat/lon เป็น Double ไม่ใช่ Optional
-                let lat = p.latitude
-                let lon = p.longitude
-                let dest = CLLocationCoordinate2D(latitude: lat, longitude: lon)
-                
-                group.addTask {
-                    let req = MKDirections.Request()
-                    req.source = MKMapItem(placemark: MKPlacemark(coordinate: origin))
-                    req.destination = MKMapItem(placemark: MKPlacemark(coordinate: dest))
-                    req.transportType = (mode == .walking) ? .walking : .automobile
-                    
-                    do {
-                        // API ที่ถูกต้องสำหรับ async/await
-                        let response = try await MKDirections(request: req).calculate()
-                        let routes = response.routes
-                        let best = routes.min(by: { $0.distance < $1.distance })
-                        
-                        let meters: Double  = best?.distance ?? .infinity
-                        let seconds: Double = best?.expectedTravelTime ?? .infinity
-                        
-                        return Result(place: p, meters: meters, seconds: seconds)
-                    } catch {
-                        return Result(place: p, meters: .infinity, seconds: .infinity)
-                    }
+        mode: TransportMode = .driving
+    ) async -> [RouteDistanceResult] {
+        var results: [RouteDistanceResult] = []
+        for place in places {
+            let d = await distance(
+                from: origin,
+                to: CLLocationCoordinate2D(latitude: place.latitude, longitude: place.longitude),
+                preferred: mode
+            )
+            results.append(RouteDistanceResult(place: place, meters: d))
+            try? await Task.sleep(nanoseconds: 150_000_000) // ลด rate-limit
+        }
+        return results
+    }
+    
+    private func distance(
+        from origin: CLLocationCoordinate2D,
+        to destination: CLLocationCoordinate2D,
+        preferred: TransportMode
+    ) async -> CLLocationDistance? {
+        if let d = await routeDistance(origin: origin, destination: destination, transport: preferred.mapKitType) {
+            return d
+        }
+        if preferred != .walking,
+           let d = await routeDistance(origin: origin, destination: destination, transport: .walking) {
+            return d
+        }
+        let straight = CLLocation(latitude: origin.latitude, longitude: origin.longitude)
+            .distance(from: CLLocation(latitude: destination.latitude, longitude: destination.longitude))
+        return straight.isFinite ? straight : nil
+    }
+    
+    private func routeDistance(
+        origin: CLLocationCoordinate2D,
+        destination: CLLocationCoordinate2D,
+        transport: MKDirectionsTransportType
+    ) async -> CLLocationDistance? {
+        guard origin.latitude.isFinite, origin.longitude.isFinite,
+              destination.latitude.isFinite, destination.longitude.isFinite,
+              !(origin.latitude == destination.latitude && origin.longitude == destination.longitude) else {
+            return nil
+        }
+        
+        let source = MKMapItem(placemark: MKPlacemark(coordinate: origin))
+        let dest   = MKMapItem(placemark: MKPlacemark(coordinate: destination))
+        
+        let request = MKDirections.Request()
+        request.source = source
+        request.destination = dest
+        request.transportType = transport
+        
+        let directions = MKDirections(request: request)
+        
+        return await withCheckedContinuation { cont in
+            directions.calculate { response, error in
+                if let route = response?.routes.first {
+                    cont.resume(returning: route.distance)
+                } else {
+                    cont.resume(returning: nil)
                 }
             }
-            
-            // รวมผลลัพธ์จาก task group
-            var results: [Result] = []
-            for await r in group { results.append(r) }
-            return results
+        }
+    }
+}
+
+private extension TransportMode {
+    var mapKitType: MKDirectionsTransportType {
+        switch self {
+        case .driving: return .automobile
+        case .walking: return .walking
         }
     }
 }

@@ -59,12 +59,6 @@ extension SacredPlace {
         let deterministicUUIDString = uniqueString.deterministicUUID()
         self.id = UUID(uuidString: deterministicUUIDString) ?? UUID()
         
-        // Debug logging
-        print("🏛️ Creating SacredPlace:")
-        print("   Name: \(nameTH)")
-        print("   Unique String: \(uniqueString)")
-        print("   Generated UUID: \(self.id.uuidString)")
-        
         self.nameTH = nameTH
         self.nameEN = nameEN
         self.descriptionTH = try container.decode(String.self, forKey: .descriptionTH)

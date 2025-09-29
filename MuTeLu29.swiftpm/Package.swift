@@ -29,6 +29,9 @@ let package = Package(
                 .landscapeRight,
                 .landscapeLeft,
                 .portraitUpsideDown(.when(deviceFamilies: [.pad]))
+            ],
+            capabilities: [
+                .locationWhenInUse(purposeString: "This app needs your location to calculate driving distances to nearby sacred places.")
             ]
         )
     ],

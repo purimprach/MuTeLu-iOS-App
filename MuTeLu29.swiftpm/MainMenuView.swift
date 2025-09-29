@@ -106,12 +106,12 @@ private struct BannerStack: View {
                 // ใช้ตัวใหม่ที่รองรับ Dark/Light
                 DailyBannerView(member: currentMember)
                     .environmentObject(language)
-                BuddhistDayBanner()
-                    .environmentObject(language)
-                ReligiousHolidayBanner()
-                    .environmentObject(language)
-                RecommendedTempleBanner(currentMember: currentMember) 
-                    .environmentObject(language)
+               // BuddhistDayBanner()
+                //    .environmentObject(language)
+             //   ReligiousHolidayBanner()
+                //    .environmentObject(language)
+            //    RecommendedTempleBanner(currentMember: currentMember) 
+               //     .environmentObject(language)
             }
         }
     }

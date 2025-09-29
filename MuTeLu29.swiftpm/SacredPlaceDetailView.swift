@@ -208,15 +208,6 @@ struct SacredPlaceDetailView: View {
             DetailSheetView(details: place.details)
                 .environmentObject(language)
         }
-        .onAppear {
-            locationManager.userLocation = CLLocation(latitude: 13.738444, longitude: 100.531750)
-            refreshTrigger = UUID() // Force UI refresh
-            print("🔄 SacredPlaceDetailView appeared for place: \(place.nameTH)")
-            print("🔄 Current user email: \(loggedInEmail)")
-            print("🔄 PlaceID: \(place.id.uuidString)")
-            
-            startCountdownTimer()
-        }
         .onDisappear {
             stopCountdownTimer()
         }
@@ -228,12 +219,10 @@ struct SacredPlaceDetailView: View {
             print("❌ ไม่พบตำแหน่งผู้ใช้")
             return false
         }
-        //print("🔎 ตำแหน่ง user: \(userLocation.coordinate.latitude), \(userLocation.coordinate.longitude)")
         let placeLocation = CLLocation(latitude: place.latitude, longitude: place.longitude)
         let distance = userLocation.distance(from: placeLocation)
-        //print("📍 ระยะห่างระหว่างคุณกับ \(place.nameTH): \(distance) เมตร")
         
-        return distance < 100
+        return distance < 50000
     }
         
     func openInMaps() {
