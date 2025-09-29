@@ -1,30 +1,32 @@
 import SwiftUI
+import SwiftData
 
 struct MeritPointsView: View {
+    @Query(sort: \CheckInRecord.date, order: .reverse) private var allRecords: [CheckInRecord]
+    
     @EnvironmentObject var language: AppLanguage
-    @EnvironmentObject var flowManager: MuTeLuFlowManager
-    @EnvironmentObject var checkInStore: CheckInStore
     @AppStorage("loggedInEmail") var loggedInEmail: String = ""
     
-    @State private var userRecords: [CheckInRecord] = []
+    private var userRecords: [CheckInRecord] {
+        allRecords.filter { $0.memberEmail.lowercased() == loggedInEmail.lowercased() }
+    }
+    
+    private var totalPoints: Int {
+        userRecords.reduce(0) { $0 + $1.meritPoints }
+    }
     
     var dateFormatter: DateFormatter {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
         formatter.timeStyle = .short
         formatter.locale = Locale(identifier: language.currentLanguage == "th" ? "th_TH" : "en_US")
-        formatter.calendar = Calendar(identifier: language.currentLanguage == "th" ? .buddhist : .gregorian)
         return formatter
-    }
-    
-    var totalPoints: Int {
-        userRecords.map { $0.meritPoints }.reduce(0, +)
     }
     
     var body: some View {
         VStack(spacing: 16) {
             BackButton()
-            // 💜 คะแนนรวม
+            
             VStack(spacing: 8) {
                 Text(language.localized("คะแนนแต้มบุญทั้งหมด", "Total Merit Points"))
                     .font(.headline)
@@ -35,7 +37,6 @@ struct MeritPointsView: View {
             }
             .padding(.top)
             
-            // 📋 รายการแต้มบุญ
             if userRecords.isEmpty {
                 Spacer()
                 Text(language.localized("ยังไม่มีประวัติแต้มบุญ", "No merit history yet"))
@@ -60,9 +61,5 @@ struct MeritPointsView: View {
             }
         }
         .padding(.top)
-        .onAppear {
-            checkInStore.load()
-            userRecords = checkInStore.records(for: loggedInEmail).sorted { $0.date > $1.date }
-        }
     }
 }

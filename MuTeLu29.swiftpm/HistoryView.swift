@@ -1,19 +1,23 @@
 import SwiftUI
+import SwiftData
 
 struct HistoryView: View {
+    // 1. ดึงข้อมูล CheckInRecord ทั้งหมด และเรียงตามวันที่ล่าสุด
+    @Query(sort: \CheckInRecord.date, order: .reverse) private var allRecords: [CheckInRecord]
+    
     @EnvironmentObject var language: AppLanguage
-    @EnvironmentObject var flowManager: MuTeLuFlowManager
-    @EnvironmentObject var checkInStore: CheckInStore
     @AppStorage("loggedInEmail") var loggedInEmail: String = ""
     
-    @State private var userRecords: [CheckInRecord] = []
+    // 2. กรองข้อมูลเฉพาะของ User ที่ Login อยู่
+    private var userRecords: [CheckInRecord] {
+        allRecords.filter { $0.memberEmail.lowercased() == loggedInEmail.lowercased() }
+    }
     
     var formatter: DateFormatter {
         let f = DateFormatter()
         f.dateStyle = .medium
         f.timeStyle = .short
         f.locale = Locale(identifier: language.currentLanguage == "th" ? "th_TH" : "en_US")
-        f.calendar = Calendar(identifier: language.currentLanguage == "th" ? .buddhist : .gregorian)
         return f
     }
     
@@ -23,7 +27,6 @@ struct HistoryView: View {
                 Spacer()
                 Text(language.localized("ยังไม่มีประวัติการเช็คอิน", "No check-in history yet"))
                     .foregroundColor(.gray)
-                    .padding()
                 Spacer()
             } else {
                 List {
@@ -42,10 +45,6 @@ struct HistoryView: View {
                     }
                 }
             }
-        }
-        .onAppear {
-            userRecords = checkInStore.records(for: loggedInEmail)
-                .sorted { $0.date > $1.date }
         }
     }
 }

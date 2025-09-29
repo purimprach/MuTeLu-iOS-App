@@ -1,12 +1,15 @@
 import SwiftUI
 import CryptoKit
+import SwiftData
 
 struct EditMemberView: View {
-    var member: Member?
-    var onSave: (Member) -> Void
     @Environment(\.dismiss) var dismiss
+    @Environment(\.modelContext) private var modelContext
     
-    // MARK: - State Properties
+    // รับ Member object มา (ถ้าเป็นการแก้ไข)
+    var member: Member?
+    
+    // State สำหรับเก็บข้อมูลในฟอร์ม
     @State private var fullName = ""
     @State private var email = ""
     @State private var phoneNumber = ""
@@ -15,11 +18,10 @@ struct EditMemberView: View {
     @State private var birthTime = ""
     @State private var houseNumber = ""
     @State private var carPlate = ""
-    
-    // ✅ เปลี่ยนชื่อให้ชัดเจนขึ้น
     @State private var password = ""
     @State private var confirmPassword = ""
     
+    // State สำหรับ Alert
     @State private var showAlert = false
     @State private var alertMessage = ""
     
@@ -30,7 +32,6 @@ struct EditMemberView: View {
     var body: some View {
         NavigationView {
             Form {
-                // ... ส่วนข้อมูลสมาชิก และ ข้อมูลเพิ่มเติม ...
                 Section(header: Text("ข้อมูลสมาชิก (Member Info)")) {
                     TextField("ชื่อ-นามสกุล (Full Name)", text: $fullName)
                     TextField("Email", text: $email)
@@ -48,17 +49,10 @@ struct EditMemberView: View {
                     TextField("ทะเบียนรถ (Car Plate)", text: $carPlate)
                 }
                 
-                // MARK: - ส่วนรหัสผ่าน (แสดงผลตลอด)
-                // ✅ [แก้ไขจุดที่ 1] - เอา if member != nil ออก และเปลี่ยนชื่อ Header
                 Section(header: Text("รหัสผ่าน (Password)")) {
-                    // ถ้าเป็นการเพิ่มใหม่ จะขึ้นว่า "รหัสผ่าน"
-                    // ถ้าเป็นการแก้ไข จะขึ้นว่า "ตั้งรหัสผ่านใหม่ (เว้นว่างไว้หากไม่ต้องการเปลี่ยน)"
                     let passwordPlaceholder = member == nil ? "รหัสผ่าน" : "ตั้งรหัสผ่านใหม่ (เว้นว่างไว้หากไม่ต้องการเปลี่ยน)"
-                    
                     SecureField(passwordPlaceholder, text: $password)
-                        .textContentType(.oneTimeCode)
                     SecureField("ยืนยันรหัสผ่าน", text: $confirmPassword)
-                        .textContentType(.oneTimeCode)
                 }
             }
             .navigationTitle(navigationTitle)
@@ -79,22 +73,19 @@ struct EditMemberView: View {
         }
     }
     
-    // MARK: - Functions
-    
     private func loadMemberData() {
-        guard let m = member else { return }
-        fullName = m.fullName
-        email = m.email
-        phoneNumber = m.phoneNumber
-        birthdate = m.birthdate
-        gender = m.gender
-        birthTime = m.birthTime
-        houseNumber = m.houseNumber
-        carPlate = m.carPlate
-        // ไม่ต้องโหลดรหัสผ่านเก่ามาแสดง
+        guard let member = member else { return }
+        // ถ้าเป็นการแก้ไข ให้ดึงข้อมูลเดิมมาใส่ใน State
+        fullName = member.fullName
+        email = member.email
+        phoneNumber = member.phoneNumber
+        birthdate = member.birthdate
+        gender = member.gender
+        birthTime = member.birthTime
+        houseNumber = member.houseNumber
+        carPlate = member.carPlate
     }
     
-    // ✅ [แก้ไขจุดที่ 2] - ปรับปรุง Logic การบันทึกทั้งหมด
     private func saveChanges() {
         // --- การตรวจสอบข้อมูลพื้นฐาน ---
         guard !email.trimmingCharacters(in: .whitespaces).isEmpty,
@@ -104,10 +95,28 @@ struct EditMemberView: View {
             return
         }
         
-        // --- การตรวจสอบรหัสผ่าน ---
-        var passwordToSave = member?.password ?? "" // ถ้าเป็นการแก้ไข ให้ใช้รหัสผ่านเดิมเป็นค่าเริ่มต้น
-        
-        if member == nil { // --- กรณีเพิ่มสมาชิกใหม่ ---
+        if let existingMember = member {
+            // --- กรณีแก้ไขสมาชิก ---
+            existingMember.fullName = fullName
+            existingMember.email = email
+            existingMember.phoneNumber = phoneNumber
+            existingMember.birthdate = birthdate
+            existingMember.gender = gender
+            existingMember.birthTime = birthTime
+            existingMember.houseNumber = houseNumber
+            existingMember.carPlate = carPlate
+            
+            // อัปเดตรหัสผ่าน (ถ้ามีการกรอกใหม่)
+            if !password.isEmpty {
+                if password != confirmPassword {
+                    alertMessage = "รหัสผ่านใหม่และการยืนยันไม่ตรงกัน"
+                    showAlert = true
+                    return
+                }
+                existingMember.password = hashPassword(password)
+            }
+        } else {
+            // --- กรณีเพิ่มสมาชิกใหม่ ---
             if password.isEmpty {
                 alertMessage = "กรุณากำหนดรหัสผ่านสำหรับสมาชิกใหม่"
                 showAlert = true
@@ -118,35 +127,22 @@ struct EditMemberView: View {
                 showAlert = true
                 return
             }
-            passwordToSave = hashPassword(password) // Hash รหัสผ่านใหม่
             
-        } else if !password.isEmpty { // --- กรณีแก้ไข และมีการกรอกรหัสผ่านใหม่ ---
-            if password != confirmPassword {
-                alertMessage = "รหัสผ่านใหม่และการยืนยันไม่ตรงกัน"
-                showAlert = true
-                return
-            }
-            passwordToSave = hashPassword(password) // Hash รหัสผ่านใหม่
+            let newMember = Member(
+                email: email,
+                password: hashPassword(password),
+                fullName: fullName,
+                gender: gender,
+                birthdate: birthdate,
+                birthTime: birthTime,
+                phoneNumber: phoneNumber,
+                houseNumber: houseNumber,
+                carPlate: carPlate
+            )
+            modelContext.insert(newMember)
         }
         
-        // --- สร้างข้อมูลสมาชิกเพื่อบันทึก ---
-        let memberToSave = Member(
-            id: member?.id ?? UUID(),
-            email: email,
-            password: passwordToSave,
-            fullName: fullName,
-            gender: gender,
-            birthdate: birthdate,
-            birthTime: birthTime,
-            phoneNumber: phoneNumber,
-            houseNumber: houseNumber,
-            carPlate: carPlate,
-            role: member?.role ?? .user,
-            status: member?.status ?? .active,
-            joinedDate: member?.joinedDate ?? Date()
-        )
-        
-        onSave(memberToSave)
+        // SwiftData จะบันทึกข้อมูลให้อัตโนมัติ
         dismiss()
     }
     
@@ -156,4 +152,3 @@ struct EditMemberView: View {
         return hashed.compactMap { String(format: "%02x", $0) }.joined()
     }
 }
-

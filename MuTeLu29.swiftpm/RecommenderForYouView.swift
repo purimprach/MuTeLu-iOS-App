@@ -1,20 +1,19 @@
 import SwiftUI
 import CoreLocation
+import SwiftData
 
 struct RecommenderForYouView: View {
+    // 👇 1. ดึงข้อมูล Member ทั้งหมดจาก SwiftData
+    @Query private var members: [Member]
+    
     @EnvironmentObject var language: AppLanguage
     @EnvironmentObject var flowManager: MuTeLuFlowManager
-    
-    // ดึง member ปัจจุบันอัตโนมัติ ถ้าไม่ได้ส่ง currentMember มา
-    @EnvironmentObject private var memberStore: MemberStore
     @AppStorage("loggedInEmail") private var loggedInEmail: String = ""
     
-    /// ถ้าหน้าอื่นอยากส่ง member มาก็ได้ (จะ override อันอัตโนมัติ
-    var currentMember: Member? = nil
-    
-    // member ที่จะใช้จริง
+    // 👇 2. เปลี่ยนวิธีหา activeMember
+    // ค้นหาจาก array 'members' ที่ @Query ดึงมาให้
     private var activeMember: Member? {
-        currentMember ?? memberStore.members.first { $0.email == loggedInEmail }
+        members.first { $0.email == loggedInEmail }
     }
     
     var body: some View {
@@ -39,7 +38,7 @@ struct RecommenderForYouView: View {
                 TempleBannerCard(
                     headingTH: "แนะนำวัดเหมาะกับวันนี้",
                     headingEN: "Today’s Temple",
-                    memberOverride: nil,
+                    memberOverride: nil, // ใช้ member ปัจจุบันอัตโนมัติ
                     openDetail: { flowManager.currentScreen = .recommendation }
                 )
                 .environmentObject(language)
@@ -57,10 +56,14 @@ struct RecommenderForYouView: View {
                     MissingBirthdayCard {
                         flowManager.currentScreen = .editProfile
                     }
+                    .environmentObject(language) // 👈 เพิ่ม environmentObject
                 }
-                DailyBannerView()
-                BuddhistDayBanner()
-                ReligiousHolidayBanner()
+                
+                // Banner อื่นๆ
+                // DailyBannerView() // อาจจะต้องส่ง activeMember เข้าไป
+                // BuddhistDayBanner()
+                // ReligiousHolidayBanner()
+                
                 Spacer()
             }
             .padding(.vertical, 12)
@@ -69,7 +72,7 @@ struct RecommenderForYouView: View {
         .background(Color(.systemGroupedBackground))
     }
     
-    // MARK: - Helpers
+    // MARK: - Helpers (เหมือนเดิม)
     private func birthdayHeading(for member: Member?) -> (th: String, en: String)? {
         guard let bday = member?.birthdate else { return nil }
         let (th, en) = weekdayName(for: bday)
@@ -77,21 +80,21 @@ struct RecommenderForYouView: View {
     }
     
     private func weekdayName(for date: Date) -> (th: String, en: String) {
-        let w = Calendar(identifier: .gregorian).component(.weekday, from: date) // 1=Sun … 7=Sat
+        let w = Calendar(identifier: .gregorian).component(.weekday, from: date)
         let th = ["อาทิตย์","จันทร์","อังคาร","พุธ","พฤหัส","ศุกร์","เสาร์"]
         let en = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"]
-        let i = max(1, min(7, w)) - 1
+        let i = max(0, min(6, w - 1))
         return (th[i], en[i])
     }
 }
 
+// TempleBannerCard และ MissingBirthdayCard ไม่ต้องแก้ไข
+// ... (โค้ดส่วนที่เหลือของไฟล์เหมือนเดิม) ...
 private struct TempleBannerCard: View {
     @EnvironmentObject var language: AppLanguage
     var headingTH: String
     var headingEN: String
-    /// nil = ใช้ตรรกะ “วันนี้”, ไม่ nil = ใช้ตรรกะ “วันเกิด”
     var memberOverride: Member?
-    /// แตะปุ่มแล้วทำอะไร
     var openDetail: () -> Void
     
     var body: some View {
@@ -107,8 +110,7 @@ private struct TempleBannerCard: View {
             HStack(spacing: 12) {
                 if UIImage(named: temple.imageName) != nil {
                     Image(temple.imageName)
-                        .resizable()
-                        .scaledToFill()
+                        .resizable().scaledToFill()
                         .frame(width: 110, height: 80)
                         .clipShape(RoundedRectangle(cornerRadius: 10))
                 } else {
@@ -144,7 +146,7 @@ private struct TempleBannerCard: View {
             }
         }
         .padding()
-        .background(Color(.secondarySystemBackground))
+        .background(Color(.secondarySystemGroupedBackground))
         .cornerRadius(16)
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color(.separator), lineWidth: 0.5))
         .shadow(color: .black.opacity(0.08), radius: 6, x: 0, y: 3)
@@ -152,17 +154,20 @@ private struct TempleBannerCard: View {
 }
 
 private struct MissingBirthdayCard: View {
+    @EnvironmentObject var language: AppLanguage
     var onEditProfile: () -> Void
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Label("ยังไม่มีวันเกิดในโปรไฟล์", systemImage: "calendar.badge.exclamationmark")
+            Label(language.localized("ยังไม่มีวันเกิดในโปรไฟล์", "No birthday in profile"), systemImage: "calendar.badge.exclamationmark")
                 .font(.headline)
-            Text("เพิ่มวันเกิดเพื่อรับคำแนะนำวัดที่ตรงกับวันเกิดของคุณ")
+            
+            Text(language.localized("เพิ่มวันเกิดเพื่อรับคำแนะนำวัดที่ตรงกับวันเกิดของคุณ", "Add your birthday to get temple recommendations tailored to you"))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
             
             Button(action: onEditProfile) {
-                Text("แก้ไขโปรไฟล์")
+                Text(language.localized("แก้ไขโปรไฟล์", "Edit Profile"))
                     .fontWeight(.bold)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)
@@ -172,7 +177,7 @@ private struct MissingBirthdayCard: View {
             }
         }
         .padding()
-        .background(Color(.secondarySystemBackground))
+        .background(Color(.secondarySystemGroupedBackground))
         .cornerRadius(16)
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color(.separator), lineWidth: 0.5))
         .shadow(color: .black.opacity(0.08), radius: 6, x: 0, y: 3)

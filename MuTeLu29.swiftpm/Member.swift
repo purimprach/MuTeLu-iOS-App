@@ -1,19 +1,12 @@
 import Foundation
+import SwiftData // 👈 1. เพิ่มบรรทัดนี้
 
-// สร้าง Enum ไว้ข้างนอก struct เพื่อให้เรียกใช้ง่าย
-enum UserRole: String, Codable {
-    case admin = "Admin"
-    case user = "User"
-}
-
-enum AccountStatus: String, Codable {
-    case active = "Active"
-    case suspended = "Suspended"
-}
-
-struct Member: Identifiable, Codable {
-    let id: UUID
+@Model // 👈 2. เพิ่ม Macro @Model เข้าไป
+final class Member { // 👈 3. เปลี่ยนจาก struct เป็น final class
+    @Attribute(.unique) // 👈 4. บอกว่า email ต้องไม่ซ้ำกัน
     var email: String
+    
+    var id: UUID
     var password: String
     var fullName: String
     var gender: String
@@ -22,9 +15,7 @@ struct Member: Identifiable, Codable {
     var phoneNumber: String
     var houseNumber: String
     var carPlate: String
-    var meritPoints: Int = 0
-    
-    // 👇 เพิ่ม 3 บรรทัดนี้เข้าไป
+    var meritPoints: Int
     var role: UserRole
     var status: AccountStatus
     var joinedDate: Date
@@ -40,10 +31,9 @@ struct Member: Identifiable, Codable {
         phoneNumber: String,
         houseNumber: String,
         carPlate: String,
-        // 👇 เพิ่ม Parameter เหล่านี้เข้าไป
-        role: UserRole = .user, // กำหนดค่าเริ่มต้นเป็น user
-        status: AccountStatus = .active, // กำหนดค่าเริ่มต้นเป็น active
-        joinedDate: Date = Date() // กำหนดค่าเริ่มต้นเป็นวันปัจจุบัน
+        role: UserRole = .user,
+        status: AccountStatus = .active,
+        joinedDate: Date = Date()
     ) {
         self.id = id
         self.email = email
@@ -55,10 +45,18 @@ struct Member: Identifiable, Codable {
         self.phoneNumber = phoneNumber
         self.houseNumber = houseNumber
         self.carPlate = carPlate
-        
-        // 👇 เพิ่มการกำหนดค่าให้ property ใหม่
+        self.meritPoints = 0 // แต้มบุญเริ่มต้นที่ 0
         self.role = role
         self.status = status
         self.joinedDate = joinedDate
     }
+}
+enum UserRole: String, Codable {
+    case admin = "Admin"
+    case user = "User"
+}
+
+enum AccountStatus: String, Codable {
+    case active = "Active"
+    case suspended = "Suspended"
 }

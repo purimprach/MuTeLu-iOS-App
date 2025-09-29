@@ -1,26 +1,37 @@
 import SwiftUI
 import CoreLocation
+import SwiftData
 
 struct SacredPlaceDetailView: View {
+    // 1. เข้าถึง "ตู้เซฟ" และดึงข้อมูล
+    @Environment(\.modelContext) private var modelContext
+    @Query private var checkInRecords: [CheckInRecord]
+    
     let place: SacredPlace
     @EnvironmentObject var language: AppLanguage
     @EnvironmentObject var flowManager: MuTeLuFlowManager
     @EnvironmentObject var locationManager: LocationManager
+    
+    @AppStorage("loggedInEmail") var loggedInEmail: String = ""
+    
     @State private var showDetailSheet = false
     @State private var showContactOptions = false
     @State private var showCheckinAlert = false
-    @EnvironmentObject var checkInStore: CheckInStore
-    @EnvironmentObject var memberStore: MemberStore
-    @AppStorage("loggedInEmail") var loggedInEmail: String = ""
-    @State private var refreshTrigger = UUID()
-    @State private var countdownTimer: Timer?
-    @State private var timeRemaining: TimeInterval = 0
+    
+    // ฟังก์ชันตรวจสอบการเช็คอิน (ทำงานกับ SwiftData)
+    private func hasCheckedInToday() -> Bool {
+        let today = Calendar.current.startOfDay(for: .now)
+        return checkInRecords.contains { record in
+            record.memberEmail.lowercased() == loggedInEmail.lowercased() &&
+            record.placeID == place.id.uuidString &&
+            Calendar.current.isDate(record.date, inSameDayAs: today)
+        }
+    }
     
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                
-                // 🔙 ปุ่มย้อนกลับ
+                // MARK: - Top Section (Navigation & Place Info)
                 Button(action: {
                     flowManager.currentScreen = .recommendation
                 }) {
@@ -28,20 +39,16 @@ struct SacredPlaceDetailView: View {
                         Image(systemName: "chevron.left")
                         Text(language.localized("ย้อนกลับ", "Back"))
                     }
-                    .font(.body)
+                    .font(.body.bold())
                     .foregroundColor(.purple)
                     .padding(.leading)
-                    .bold()
                 }
-                Spacer()
-                // ✅ ชื่อสถานที่
+                
                 Text(language.localized(place.nameTH, place.nameEN))
-                    .font(.title2)
-                    .fontWeight(.bold)
+                    .font(.title2.bold())
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: .infinity)
                 
-                // ✅ กล่อง description
                 ExpandableTextView(
                     fullText: language.localized(place.descriptionTH, place.descriptionEN),
                     lineLimit: 5
@@ -49,13 +56,8 @@ struct SacredPlaceDetailView: View {
                 .padding()
                 .background(Color(.systemGray6))
                 .cornerRadius(12)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-                )
                 .padding(.horizontal)
                 
-                // ✅ รูปภาพ
                 Image(place.imageName)
                     .resizable()
                     .scaledToFit()
@@ -63,7 +65,6 @@ struct SacredPlaceDetailView: View {
                     .cornerRadius(12)
                     .padding(.horizontal)
                 
-                // ✅ ปุ่มกดดูรายละเอียด
                 Button(action: {
                     showDetailSheet.toggle()
                 }) {
@@ -77,7 +78,7 @@ struct SacredPlaceDetailView: View {
                 }
                 .padding(.horizontal)
                 
-                // ✅ แผนที่
+                // MARK: - Map & Actions Section
                 VStack(alignment: .leading, spacing: 15) {
                     Text("📍 \(language.currentLanguage == "th" ? place.locationTH : place.locationEN)")
                         .font(.subheadline)
@@ -91,11 +92,8 @@ struct SacredPlaceDetailView: View {
                     .frame(height: 180)
                     .cornerRadius(12)
                     .padding(.horizontal)
-                    Spacer()
-                    // ✅ ปุ่มนำทาง
-                    Button(action: {
-                        openInMaps()
-                    }) {
+                    
+                    Button(action: openInMaps) {
                         Label(language.localized("นำทาง", "Get Directions"), systemImage: "map.fill")
                             .frame(maxWidth: .infinity)
                             .padding()
@@ -105,47 +103,29 @@ struct SacredPlaceDetailView: View {
                     }
                     .padding(.horizontal)
                     
-                    //ปุ่มเช็คอิน
+                    // -- ปุ่มเช็คอิน (อัปเกรดแล้ว) --
                     VStack {
-                        if checkInStore.hasCheckedInRecently(email: loggedInEmail, placeID: place.id.uuidString) {
-                            VStack(spacing: 8) {
-                                Label("✅ เช็คอินแล้ว", systemImage: "checkmark.seal.fill")
-                                    .foregroundColor(.green)
-                                
-                                if timeRemaining > 0 {
-                                    Text("เช็คอินครั้งถัดไปได้ในอีก: \(formatTime(timeRemaining))")
-                                        .font(.caption)
-                                        .foregroundColor(.orange)
-                                        .fontWeight(.medium)
-                                } else {
-                                    Text("สามารถเช็คอินใหม่ได้แล้ว")
-                                        .font(.caption)
-                                        .foregroundColor(.blue)
-                                        .fontWeight(.medium)
-                                }
-                            }
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                            .background(Color.gray.opacity(0.2))
-                            .cornerRadius(12)
+                        if hasCheckedInToday() {
+                            Label("✅ คุณเช็คอินแล้ววันนี้", systemImage: "checkmark.seal.fill")
+                                .foregroundColor(.green)
+                                .padding()
+                                .frame(maxWidth: .infinity)
+                                .background(Color.gray.opacity(0.2))
+                                .cornerRadius(12)
                         } else if isUserNearPlace() {
                             Button(action: {
-                                // ตรวจสอบอีกครั้งก่อนเช็คอิน
-                                if !checkInStore.hasCheckedInRecently(email: loggedInEmail, placeID: place.id.uuidString) {
-                                    let newRecord = CheckInRecord(
-                                        placeID: place.id.uuidString,
-                                        placeNameTH: place.nameTH,
-                                        placeNameEN: place.nameEN,
-                                        meritPoints: 15,
-                                        memberEmail: loggedInEmail,
-                                        date: Date(),
-                                        latitude: place.latitude,
-                                        longitude: place.longitude
-                                    )
-                                    checkInStore.add(record: newRecord)
-                                    refreshTrigger = UUID() // Force UI refresh
-                                    showCheckinAlert = true
-                                }
+                                let newRecord = CheckInRecord(
+                                    placeID: place.id.uuidString,
+                                    placeNameTH: place.nameTH,
+                                    placeNameEN: place.nameEN,
+                                    meritPoints: 15,
+                                    memberEmail: loggedInEmail,
+                                    date: Date(),
+                                    latitude: place.latitude,
+                                    longitude: place.longitude
+                                )
+                                modelContext.insert(newRecord)
+                                showCheckinAlert = true
                             }) {
                                 Label("เช็คอินเพื่อรับแต้ม", systemImage: "checkmark.seal.fill")
                                     .foregroundColor(.white)
@@ -171,9 +151,8 @@ struct SacredPlaceDetailView: View {
                         }
                     }
                     .padding(.horizontal)
-                    .id(refreshTrigger) // Force refresh when refreshTrigger changes
                     
-                    // ✅ ปุ่มติดต่อ
+                    // -- ปุ่มติดต่อ --
                     Button(action: {
                         showContactOptions = true
                     }) {
@@ -187,44 +166,33 @@ struct SacredPlaceDetailView: View {
                     }
                     .padding(.horizontal)
                     .confirmationDialog("ติดต่อสถานที่", isPresented: $showContactOptions, titleVisibility: .visible) {
-                        Button("โทร") {
-                            contactPhone()
-                        }
-                        Button("อีเมล") {
-                            contactEmail()
-                        }
-                        Button("แอดไลน์") {
-                            openLine()
-                        }
+                        Button("โทร") { contactPhone() }
+                        Button("อีเมล") { contactEmail() }
+                        Button("แอดไลน์") { openLine() }
                         Button("ยกเลิก", role: .cancel) {}
                     }
                 }
-                .padding()
+                .padding(.bottom) // เพิ่ม padding ด้านล่าง
             }
             .padding(.top)
         }
-        // ✅ Sheet แสดงข้อมูลรายละเอียด
         .sheet(isPresented: $showDetailSheet) {
             DetailSheetView(details: place.details)
                 .environmentObject(language)
         }
-        .onDisappear {
-            stopCountdownTimer()
-        }
     }
     
+    // MARK: - Helper Functions
+    
     func isUserNearPlace() -> Bool {
-        
         guard let userLocation = locationManager.userLocation else {
-            print("❌ ไม่พบตำแหน่งผู้ใช้")
             return false
         }
         let placeLocation = CLLocation(latitude: place.latitude, longitude: place.longitude)
         let distance = userLocation.distance(from: placeLocation)
-        
-        return distance < 50000
+        return distance < 50000 // ระยะ 50 กม. สำหรับการทดสอบ
     }
-        
+    
     func openInMaps() {
         let latitude = place.latitude
         let longitude = place.longitude
@@ -232,6 +200,7 @@ struct SacredPlaceDetailView: View {
             UIApplication.shared.open(url)
         }
     }
+    
     func contactPhone() {
         if let url = URL(string: "tel://022183365"), UIApplication.shared.canOpenURL(url) {
             UIApplication.shared.open(url)
@@ -249,37 +218,8 @@ struct SacredPlaceDetailView: View {
             UIApplication.shared.open(url)
         }
     }
-    
-    func startCountdownTimer() {
-        updateTimeRemaining()
-        
-        countdownTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
-            updateTimeRemaining()
-        }
-    }
-    
-    func stopCountdownTimer() {
-        countdownTimer?.invalidate()
-        countdownTimer = nil
-    }
-    
-    func updateTimeRemaining() {
-        if let remaining = checkInStore.timeRemainingUntilNextCheckIn(email: loggedInEmail, placeID: place.id.uuidString) {
-            timeRemaining = remaining
-            if remaining <= 0 {
-                refreshTrigger = UUID() // Force UI refresh when countdown reaches 0
-            }
-        } else {
-            timeRemaining = 0
-        }
-    }
-    
-    func formatTime(_ timeInterval: TimeInterval) -> String {
-        let minutes = Int(timeInterval) / 60
-        let seconds = Int(timeInterval) % 60
-        return String(format: "%02d:%02d", minutes, seconds)
-    }
 }
+
 struct ExpandableTextView: View {
     let fullText: String
     let lineLimit: Int

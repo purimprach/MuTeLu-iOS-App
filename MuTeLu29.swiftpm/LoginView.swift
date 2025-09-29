@@ -1,10 +1,11 @@
 import SwiftUI
-import CryptoKit // ✅ 1. เพิ่มบรรทัดนี้
+import CryptoKit
+import SwiftData
 
 struct LoginView: View {
+    @Environment(\.modelContext) private var modelContext
     @EnvironmentObject var flowManager: MuTeLuFlowManager
     @EnvironmentObject var language: AppLanguage
-    @EnvironmentObject var memberStore: MemberStore
     @AppStorage("loggedInEmail") private var loggedInEmail: String = ""
     @AppStorage("currentUserEmail") var currentUserEmail = ""
     
@@ -27,7 +28,6 @@ struct LoginView: View {
     ]
     
     var body: some View {
-        // ... ส่วน body ของคุณไม่ต้องแก้ไข ...
         ZStack {
             LinearGradient(
                 gradient: Gradient(colors: [Color.purple.opacity(0.7),
@@ -206,27 +206,40 @@ struct LoginView: View {
         let trimmedEmail = username.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let trimmedPassword = password.trimmingCharacters(in: .whitespacesAndNewlines)
         
-        // ค้นหาสมาชิกด้วยอีเมล
-        if let matched = memberStore.members.first(where: { $0.email.lowercased() == trimmedEmail }) {
-            // นำรหัสผ่านที่กรอกไป Hash แล้วเปรียบเทียบกับรหัสที่เก็บไว้
-            if matched.password == hashPassword(trimmedPassword) {
-                // --- Login สำเร็จ ---
-                currentUserEmail = matched.email
-                loggedInEmail = matched.email
-                greetingName = matched.fullName
-                randomGreetingMessage = greetings.randomElement() ?? ""
-                
-                withAnimation {
-                    showGreetingPopup = true
+        // สร้าง "คำสั่งค้นหา" สมาชิกด้วยอีเมล
+        let descriptor = FetchDescriptor<Member>(
+            predicate: #Predicate { $0.email == trimmedEmail }
+        )
+        
+        do {
+            // ลองค้นหาใน "ตู้เซฟ"
+            let members = try modelContext.fetch(descriptor)
+            
+            // ตรวจสอบว่าเจอสมาชิกหรือไม่ (ควรจะเจอแค่คนเดียว)
+            if let matchedMember = members.first {
+                // ถ้าเจอ ให้เปรียบเทียบรหัสผ่านที่ถูก Hash ไว้
+                if matchedMember.password == hashPassword(trimmedPassword) {
+                    // --- Login สำเร็จ ---
+                    currentUserEmail = matchedMember.email
+                    loggedInEmail = matchedMember.email
+                    greetingName = matchedMember.fullName
+                    randomGreetingMessage = greetings.randomElement() ?? ""
+                    
+                    withAnimation {
+                        showGreetingPopup = true
+                    }
+                } else {
+                    // --- รหัสผ่านผิด ---
+                    errorMessage = language.localized("อีเมลหรือรหัสผ่านไม่ถูกต้อง", "Incorrect email or password")
+                    showErrorAlert = true
                 }
             } else {
-                // --- รหัสผ่านผิด ---
+                // --- ไม่พบอีเมล ---
                 errorMessage = language.localized("อีเมลหรือรหัสผ่านไม่ถูกต้อง", "Incorrect email or password")
                 showErrorAlert = true
             }
-        } else {
-            // --- ไม่พบอีเมล ---
-            errorMessage = language.localized("อีเมลหรือรหัสผ่านไม่ถูกต้อง", "Incorrect email or password")
+        } catch {
+            errorMessage = "Database error: \(error.localizedDescription)"
             showErrorAlert = true
         }
     }

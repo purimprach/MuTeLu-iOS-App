@@ -1,9 +1,13 @@
 import SwiftUI
 import MapKit
+import SwiftData
 
 struct RecommendationView: View {
     @StateObject private var viewModel = SacredPlaceViewModel()
-    @EnvironmentObject var checkInStore: CheckInStore
+    
+    // 👇 1. ดึงข้อมูล CheckInRecord ทั้งหมด
+    @Query(sort: \CheckInRecord.date, order: .reverse) private var checkInRecords: [CheckInRecord]
+    
     @EnvironmentObject var language: AppLanguage
     @EnvironmentObject var flowManager: MuTeLuFlowManager
     @EnvironmentObject var locationManager: LocationManager
@@ -12,8 +16,6 @@ struct RecommendationView: View {
     // State สำหรับเก็บผลลัพธ์การแนะนำ
     @State private var recommendedPlaces: [SacredPlace] = []
     @State private var sourcePlaceName: String? = nil
-    
-    // State ใหม่สำหรับเก็บ "ระยะทางขับรถจริง" ที่คำนวณแล้ว
     @State private var routeDistances: [UUID: CLLocationDistance] = [:]
     
     var body: some View {
@@ -35,10 +37,7 @@ struct RecommendationView: View {
                             .padding(.horizontal)
                         
                         ForEach(recommendedPlaces) { place in
-                            PlaceRow(
-                                place: place,
-                                routeDistance: routeDistances[place.id]
-                            )
+                            PlaceRow(place: place, routeDistance: routeDistances[place.id])
                         }
                     }
                     Divider().padding()
@@ -51,10 +50,7 @@ struct RecommendationView: View {
                         .padding(.horizontal)
                     
                     ForEach(viewModel.places) { place in
-                        PlaceRow(
-                            place: place,
-                            routeDistance: routeDistances[place.id]
-                        )
+                        PlaceRow(place: place, routeDistance: routeDistances[place.id])
                     }
                 }
             }
@@ -62,42 +58,20 @@ struct RecommendationView: View {
         }
         .background(Color(.systemGroupedBackground))
         .onAppear {
-            // MARK: - โค้ดสำหรับทดสอบใน App Preview
-            // บรรทัดนี้จะจำลองตำแหน่งเพื่อให้เราเห็นผลลัพธ์ใน Preview
-            // (เมื่อรันบนเครื่องจริง ควรลบออกเพื่อให้ใช้ GPS จริง)
-            locationManager.userLocation = CLLocation(latitude: 13.738444, longitude: 100.531750)
-            
             generateRecommendations()
-            // เมื่อหน้าจอแสดง ให้เริ่มคำนวณระยะทางขับรถจริง
             Task { await calculateAllRouteDistances() }
         }
         .onChange(of: locationManager.userLocation) {
-            // ถ้าตำแหน่งผู้ใช้อัปเดต ให้คำนวณใหม่
             Task { await calculateAllRouteDistances() }
         }
     }
     
-    // ฟังก์ชันสำหรับคำนวณระยะทางขับรถจริง (ทำงานเบื้องหลัง)
-    private func calculateAllRouteDistances() async {
-        guard let userLocation = locationManager.userLocation else { return }
-        
-        let results = await RouteDistanceService.shared.batchDistances(
-            from: userLocation.coordinate,
-            places: viewModel.places,
-            mode: .driving
-        )
-        
-        var newDistances: [UUID: CLLocationDistance] = [:]
-        for result in results {
-            newDistances[result.place.id] = result.meters
-        }
-        
-        self.routeDistances = newDistances
-    }
-    
-    // ฟังก์ชันสร้างคำแนะนำ (เหมือนเดิม)
+    // 👇 2. อัปเกรดฟังก์ชัน generateRecommendations ให้ใช้ SwiftData
     private func generateRecommendations() {
-        guard let latestCheckIn = checkInStore.records(for: loggedInEmail).sorted(by: { $0.date > $1.date }).first,
+        // กรองหา check-in ของ user ที่ login อยู่
+        let userRecords = checkInRecords.filter { $0.memberEmail.lowercased() == loggedInEmail.lowercased() }
+        
+        guard let latestCheckIn = userRecords.first, // .first เพราะ @Query เรียงให้แล้ว
               let sourcePlace = viewModel.places.first(where: { $0.id.uuidString == latestCheckIn.placeID }) else {
             self.recommendedPlaces = []
             self.sourcePlaceName = nil
@@ -105,14 +79,27 @@ struct RecommendationView: View {
         }
         
         let engine = RecommendationEngine(places: viewModel.places)
-        let visitedIDs = checkInStore.records(for: loggedInEmail).map { UUID(uuidString: $0.placeID) }.compactMap { $0 }
+        let visitedIDs = userRecords.compactMap { UUID(uuidString: $0.placeID) }
         
         self.recommendedPlaces = engine.getRecommendations(basedOn: sourcePlace, excluding: visitedIDs)
         self.sourcePlaceName = language.localized(sourcePlace.nameTH, sourcePlace.nameEN)
     }
+    
+    // ฟังก์ชันคำนวณระยะทาง (เหมือนเดิม)
+    private func calculateAllRouteDistances() async {
+        guard let userLocation = locationManager.userLocation else { return }
+        let results = await RouteDistanceService.shared.batchDistances(
+            from: userLocation.coordinate,
+            places: viewModel.places,
+            mode: .driving
+        )
+        var newDistances: [UUID: CLLocationDistance] = [:]
+        for result in results {
+            newDistances[result.place.id] = result.meters
+        }
+        self.routeDistances = newDistances
+    }
 }
-
-// MARK: - Subviews (PlaceRow ที่แก้ไขปัญหา infinity แล้ว)
 
 struct PlaceRow: View {
     let place: SacredPlace

@@ -1,9 +1,11 @@
 import SwiftUI
+import CryptoKit
+import SwiftData
 
 // MARK: - 1. หน้าจอหลักของผู้ดูแล (Dashboard)
 struct AdminView: View {
     @EnvironmentObject var language: AppLanguage
-    @State private var selectedTab: AdminTab = .members // เริ่มต้นที่แท็บสมาชิก
+    @State private var selectedTab: AdminTab = .members
     
     enum AdminTab {
         case members
@@ -29,9 +31,12 @@ struct AdminView: View {
     }
 }
 
-// MARK: - 2. หน้าจอสำหรับจัดการสมาชิก (UI เดิมที่ปรับปรุงแล้ว)
+
+// MARK: - 2. หน้าจอสำหรับจัดการสมาชิก (ฉบับสมบูรณ์)
 struct MemberManagementView: View {
-    @EnvironmentObject var memberStore: MemberStore
+    @Environment(\.modelContext) private var modelContext
+    @Query(sort: \Member.fullName) private var members: [Member]
+    
     @EnvironmentObject var language: AppLanguage
     @EnvironmentObject var flowManager: MuTeLuFlowManager
     
@@ -45,18 +50,16 @@ struct MemberManagementView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .center, spacing: 16) {
-                    ForEach(memberStore.members, id: \.id) { member in
+                    ForEach(members) { member in
                         memberCard(for: member)
                     }
                 }
                 .padding()
             }
             .navigationTitle(language.localized("จัดการสมาชิก", "Member Management"))
-            // 👇 **** นี่คือ Toolbar ที่หายไป **** 👇
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
-                        // เปลี่ยนจาก .login เป็น .home เพื่อกลับไปหน้าหลัก
                         flowManager.currentScreen = .home
                     } label: {
                         HStack {
@@ -73,15 +76,9 @@ struct MemberManagementView: View {
                     .fontWeight(.semibold)
                 }
             }
-            // 👇 **** และ .sheet/.alert ที่เกี่ยวข้อง **** 👇
             .sheet(isPresented: $showingEditSheet) {
                 if let memberToEdit = editingMember {
-                    EditMemberView(member: memberToEdit) { updated in
-                        if let index = memberStore.members.firstIndex(where: { $0.id == updated.id }) {
-                            memberStore.members[index] = updated
-                        }
-                        showingEditSheet = false
-                    }
+                    EditMemberView(member: memberToEdit)
                 }
             }
             .alert(language.localized("ยืนยันการลบ", "Confirm Deletion"), isPresented: $showDeleteConfirm) {
@@ -95,15 +92,11 @@ struct MemberManagementView: View {
                 Text(language.localized("คุณแน่ใจว่าต้องการลบสมาชิกนี้หรือไม่", "Are you sure you want to delete this member?"))
             }
             .sheet(isPresented: $showingAddSheet) {
-                EditMemberView(member: nil) { newMember in
-                    memberStore.members.append(newMember)
-                    showingAddSheet = false
-                }
+                EditMemberView(member: nil)
             }
         }
     }
     
-    // ฟังก์ชันสำหรับสร้างการ์ดสมาชิก
     @ViewBuilder
     func memberCard(for member: Member) -> some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -151,12 +144,9 @@ struct MemberManagementView: View {
     }
     
     func delete(_ member: Member) {
-        if let index = memberStore.members.firstIndex(where: { $0.id == member.id }) {
-            memberStore.members.remove(at: index)
-        }
+        modelContext.delete(member)
     }
     
-    // ฟังก์ชันสำหรับจัดรูปแบบวันที่
     func formattedDate(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateStyle = .long
@@ -166,10 +156,11 @@ struct MemberManagementView: View {
     }
 }
 
-// MARK: - 3. หน้าจอใหม่สำหรับดูประวัติเช็คอินทั้งหมด (ฉบับสมบูรณ์)
+
+// MARK: - 3. หน้าจอประวัติเช็คอิน (ฉบับสมบูรณ์)
 struct CheckinHistoryView: View {
-    @EnvironmentObject var checkInStore: CheckInStore
-    @EnvironmentObject var memberStore: MemberStore
+    @Query(sort: \CheckInRecord.date, order: .reverse) private var records: [CheckInRecord]
+    @Query(sort: \Member.fullName) private var members: [Member]
     @EnvironmentObject var language: AppLanguage
     
     @State private var searchText = ""
@@ -177,42 +168,30 @@ struct CheckinHistoryView: View {
     @State private var selectedPlaceID: String? = nil
     
     private var filteredRecords: [CheckInRecord] {
-        var records = checkInStore.records.sorted { $0.date > $1.date }
+        var filtered = records
         
         if let email = selectedUserEmail {
-            records = records.filter { $0.memberEmail == email }
+            filtered = filtered.filter { $0.memberEmail == email }
         }
         
         if let placeID = selectedPlaceID {
-            records = records.filter { $0.placeID == placeID }
+            filtered = filtered.filter { $0.placeID == placeID }
         }
         
         if !searchText.isEmpty {
             let searchOptions: String.CompareOptions = [.caseInsensitive, .diacriticInsensitive]
-            
-            records = records.filter { record in
-                // 👇 **** นี่คือส่วนที่แก้ไข **** 👇
-                
-                // ค้นหาในชื่อสถานที่ (เหมือนเดิม)
+            filtered = filtered.filter { record in
                 if record.placeNameTH.range(of: searchText, options: searchOptions) != nil { return true }
                 if record.placeNameEN.range(of: searchText, options: searchOptions) != nil { return true }
-                
-                // ค้นหาในอีเมล (เหมือนเดิม)
                 if record.memberEmail.range(of: searchText, options: searchOptions) != nil { return true }
-                
-                // ค้นหาในชื่อเต็ม (แก้ไข Logic เล็กน้อย)
                 if let member = findMember(by: record.memberEmail) {
-                    if member.fullName.range(of: searchText, options: searchOptions) != nil {
-                        return true
-                    }
+                    if member.fullName.range(of: searchText, options: searchOptions) != nil { return true }
                 }
-                
-                // ถ้าไม่เจอเลย
                 return false
             }
         }
         
-        return records
+        return filtered
     }
     
     var body: some View {
@@ -226,20 +205,17 @@ struct CheckinHistoryView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
-                        // Section ที่ 1: ตัวเลือกการกรอง
                         Section {
-                            // ใช้ Picker สำหรับกรองตามสมาชิก
                             Picker("กรองตามสมาชิก", selection: $selectedUserEmail) {
-                                Text("สมาชิกทั้งหมด").tag(String?.none) // ตัวเลือกสำหรับไม่กรอง
-                                ForEach(memberStore.members) { member in
+                                Text("สมาชิกทั้งหมด").tag(String?.none)
+                                ForEach(members) { member in
                                     Text(member.fullName).tag(String?(member.email))
                                 }
                             }
                             
-                            // ใช้ Picker สำหรับกรองตามสถานที่
                             Picker("กรองตามสถานที่", selection: $selectedPlaceID) {
-                                Text("สถานที่ทั้งหมด").tag(String?.none) // ตัวเลือกสำหรับไม่กรอง
-                                let uniquePlaces = Dictionary(grouping: checkInStore.records, by: { $0.placeID })
+                                Text("สถานที่ทั้งหมด").tag(String?.none)
+                                let uniquePlaces = Dictionary(grouping: records, by: { $0.placeID })
                                     .compactMap { $0.value.first }
                                     .sorted { $0.placeNameTH < $1.placeNameTH }
                                 
@@ -249,7 +225,6 @@ struct CheckinHistoryView: View {
                             }
                         }
                         
-                        // Section ที่ 2: ปุ่มสำหรับ Reset (ถ้ามีการกรองอยู่)
                         if selectedUserEmail != nil || selectedPlaceID != nil {
                             Section {
                                 Button(role: .destructive) {
@@ -261,7 +236,6 @@ struct CheckinHistoryView: View {
                             }
                         }
                     } label: {
-                        // ไอคอนปุ่ม Filter จะเปลี่ยนสีถ้ามีการใช้งานอยู่
                         Image(systemName: (selectedUserEmail != nil || selectedPlaceID != nil) ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
                             .imageScale(.large)
                     }
@@ -270,9 +244,8 @@ struct CheckinHistoryView: View {
         }
     }
     
-    // ฟังก์ชันช่วยในการหาข้อมูลสมาชิกจากอีเมล
     private func findMember(by email: String) -> Member? {
-        return memberStore.members.first { $0.email.caseInsensitiveCompare(email) == .orderedSame }
+        return members.first { $0.email.caseInsensitiveCompare(email) == .orderedSame }
     }
 }
 
@@ -280,18 +253,17 @@ struct CheckinHistoryView: View {
 // MARK: - 4. UI สำหรับแสดงผลแต่ละแถวในหน้าประวัติเช็คอิน
 struct CheckInRow: View {
     let record: CheckInRecord
-    @EnvironmentObject var memberStore: MemberStore
+    @Query private var members: [Member]
     @EnvironmentObject var language: AppLanguage
     
     private var memberName: String {
-        memberStore.members.first { $0.email.caseInsensitiveCompare(record.memberEmail) == .orderedSame }?.fullName ?? "Unknown User"
+        members.first { $0.email.caseInsensitiveCompare(record.memberEmail) == .orderedSame }?.fullName ?? "Unknown User"
     }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(language.localized(record.placeNameTH, record.placeNameEN))
                 .font(.headline)
-                .foregroundColor(AppColor.brandPrimary.color)
             
             Divider()
             
@@ -301,7 +273,7 @@ struct CheckInRow: View {
                     Label(record.memberEmail, systemImage: "envelope.fill")
                 }
                 .font(.caption)
-                .foregroundColor(AppColor.textSecondary.color)
+                .foregroundColor(.secondary)
                 
                 Spacer()
                 

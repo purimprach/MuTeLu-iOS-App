@@ -1,24 +1,34 @@
 import SwiftUI
 import PhotosUI
+import SwiftData
 
 struct ProfileView: View {
+    // 👇 1. ดึงข้อมูล Member และ CheckInRecord ทั้งหมด
+    @Query private var members: [Member]
+    @Query private var checkInRecords: [CheckInRecord]
+    
     @EnvironmentObject var language: AppLanguage
     @EnvironmentObject var flowManager: MuTeLuFlowManager
-    @EnvironmentObject var memberStore: MemberStore
     @AppStorage("loggedInEmail") private var loggedInEmail: String = ""
     
+    // State สำหรับรูปภาพและ Alert
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var profileImage: UIImage?
     @State private var showLogoutAlert = false
     
-    @EnvironmentObject var checkInStore: CheckInStore
-    @State private var userRecords: [CheckInRecord] = []
-    
-    var currentUser: Member? {
-        memberStore.members.first { $0.email.lowercased() == loggedInEmail.lowercased() }
+    // 👇 2. เปลี่ยนวิธีหา currentUser และ userRecords
+    // ค้นหาจาก array ที่ @Query ดึงมาให้
+    private var currentUser: Member? {
+        members.first { $0.email.lowercased() == loggedInEmail.lowercased() }
     }
     
-    var imageKey: String {
+    private var userRecords: [CheckInRecord] {
+        checkInRecords
+            .filter { $0.memberEmail.lowercased() == loggedInEmail.lowercased() }
+            .sorted { $0.date > $1.date }
+    }
+    
+    private var imageKey: String {
         "profileImage_\(loggedInEmail.lowercased())"
     }
     
@@ -126,11 +136,8 @@ struct ProfileView: View {
             }
             .padding(.bottom)
         }
-        .onAppear {
-            loadSavedImage()
-            userRecords = checkInStore.records(for: loggedInEmail).sorted { $0.date > $1.date }
-        }
-        .onChange(of: selectedPhoto) { oldValue, newValue in
+        .onAppear(perform: loadSavedImage)
+        .onChange(of: selectedPhoto) { _, newValue in
             Task {
                 if let data = try? await newValue?.loadTransferable(type: Data.self),
                    let uiImage = UIImage(data: data) {

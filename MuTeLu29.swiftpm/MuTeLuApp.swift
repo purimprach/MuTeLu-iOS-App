@@ -1,12 +1,21 @@
 import SwiftUI
+import SwiftData // 👈 1. เพิ่มบรรทัดนี้
 
 @main
 struct MuTeLuApp: App {
     @StateObject var language = AppLanguage()
     @StateObject var flowManager = MuTeLuFlowManager()
     @StateObject var locationManager = LocationManager()
-    @StateObject var memberStore = MemberStore()
-    @StateObject var checkInStore = CheckInStore()
+    
+    let modelContainer: ModelContainer
+    
+    init() {
+        do {
+            modelContainer = try ModelContainer(for: Member.self, CheckInRecord.self)
+        } catch {
+            fatalError("Could not initialize ModelContainer")
+        }
+    }
     
     var body: some Scene {
         WindowGroup {
@@ -14,8 +23,7 @@ struct MuTeLuApp: App {
                 .environmentObject(language)
                 .environmentObject(flowManager)
                 .environmentObject(locationManager)
-                .environmentObject(memberStore)
-                .environmentObject(checkInStore)
         }
+        .modelContainer(modelContainer)
     }
 }

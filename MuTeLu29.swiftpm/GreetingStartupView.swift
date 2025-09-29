@@ -1,13 +1,18 @@
 import SwiftUI
+import SwiftData
 
 struct GreetingStartupView: View {
-    @EnvironmentObject var memberStore: MemberStore
+    // 👇 1. ดึงข้อมูล Member ทั้งหมดจาก SwiftData
+    @Query private var members: [Member]
+    
     @EnvironmentObject var language: AppLanguage
     @EnvironmentObject var flowManager: MuTeLuFlowManager
     @AppStorage("loggedInEmail") var loggedInEmail: String = ""
     
-    var currentMember: Member? {
-        memberStore.members.first { $0.email == loggedInEmail }
+    // 👇 2. เปลี่ยนวิธีหา currentMember
+    // ค้นหาจาก array 'members' ที่ @Query ดึงมาให้
+    private var currentMember: Member? {
+        members.first { $0.email == loggedInEmail }
     }
     
     var body: some View {
@@ -32,4 +37,3 @@ struct GreetingStartupView: View {
         }
     }
 }
-

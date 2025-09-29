@@ -1,13 +1,14 @@
 import SwiftUI
 import CoreLocation
+import SwiftData
 
 struct HomeView: View {
+    @Query private var members: [Member]
     @StateObject private var viewModel = SacredPlaceViewModel()
     @EnvironmentObject var language: AppLanguage
     @EnvironmentObject var flowManager: MuTeLuFlowManager
-    @EnvironmentObject var memberStore: MemberStore
     @EnvironmentObject var locationManager: LocationManager
-    @EnvironmentObject var checkInStore: CheckInStore
+    
     
     @AppStorage("loggedInEmail") private var loggedInEmail: String = ""
     
@@ -23,9 +24,8 @@ struct HomeView: View {
     @State private var lastComputedLocation: CLLocation?
     
     private let sacredPlaces = loadSacredPlaces()
-    
     private var currentMember: Member? {
-        memberStore.members.first { $0.email == loggedInEmail }
+        members.first { $0.email == loggedInEmail }
     }
     
     // MARK: - Body (ฉบับแก้ไข)
@@ -140,7 +140,7 @@ struct HomeView: View {
         }
     }
 }
-
 struct NotificationView: View {
     var body: some View { Text("Notification Screen") }
 }
+
