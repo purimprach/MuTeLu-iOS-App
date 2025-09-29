@@ -104,17 +104,17 @@ struct ProfileView: View {
                 .tint(.purple)
                 
                 // 🔓 Logout
-                Button(action: {
+                Spacer(minLength: 24)
+                Button(role: .destructive) { // 👈 เพิ่ม role เป็น .destructive
                     showLogoutAlert = true
-                }) {
+                } label: {
                     Label(language.localized("ออกจากระบบ", "Logout"), systemImage: "rectangle.portrait.and.arrow.right")
                         .font(.headline)
-                        .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(Color.purple)
-                        .cornerRadius(10)
                 }
+                .buttonStyle(.borderedProminent) // 👈 ใช้ Style ที่ระบบเตรียมไว้ให้
+                .tint(.red) // 👈 กำหนดให้เป็นสีแดง ซึ่งสื่อถึงการกระทำที่มีความเสี่ยง
                 .padding(.horizontal)
                 .alert(language.localized("ยืนยันการออกจากระบบ", "Confirm Logout"), isPresented: $showLogoutAlert) {
                     Button(language.localized("ยืนยัน", "Confirm"), role: .destructive) {
