@@ -202,15 +202,23 @@ struct LoginView: View {
     }
     
     // ✅ 3. แก้ไขฟังก์ชัน handleLogin ทั้งหมด
+    // ใน struct LoginView:
+    
     func handleLogin() {
         let trimmedEmail = username.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let trimmedPassword = password.trimmingCharacters(in: .whitespacesAndNewlines)
         
-        // ค้นหาสมาชิกด้วยอีเมล
-        if let matched = memberStore.members.first(where: { $0.email.lowercased() == trimmedEmail }) {
+        // ค้นหาสมาชิกด้วยอีเมล (ใช้ firstIndex เพื่อให้ได้ตำแหน่งใน array)
+        if let index = memberStore.members.firstIndex(where: { $0.email.lowercased() == trimmedEmail }) {
+            let matched = memberStore.members[index]
+            
             // นำรหัสผ่านที่กรอกไป Hash แล้วเปรียบเทียบกับรหัสที่เก็บไว้
             if matched.password == hashPassword(trimmedPassword) {
                 // --- Login สำเร็จ ---
+                
+                // 👇 อัปเดตเวลา login ล่าสุด
+                memberStore.members[index].lastLogin = Date()
+                
                 currentUserEmail = matched.email
                 loggedInEmail = matched.email
                 greetingName = matched.fullName

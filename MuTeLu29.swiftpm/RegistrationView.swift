@@ -104,9 +104,6 @@ struct RegistrationView: View {
         }
     }
     
-    // ... (ส่วน genderPicker และฟังก์ชัน handleRegister เหมือนเดิม)
-    // ...
-    
     // MARK: - ปรับปรุง View ย่อยให้ใช้สีใหม่
     
     // ✅ Field ปกติ
@@ -153,19 +150,30 @@ struct RegistrationView: View {
         }
     }
     
-    // ... (RequiredSecureField และ RequiredPasswordField ก็ใช้หลักการเดียวกัน)
-    // (โค้ดสำหรับ View ย่อยอื่นๆ อยู่ด้านล่างสุดของไฟล์)
-    
+    // 👇 --- **ส่วนที่แก้ไข** ---
     var genderPicker: some View {
         VStack(alignment: .leading) {
             Text(language.localized("เพศ", "Gender")).font(.caption).foregroundColor(.gray)
             Picker("", selection: $gender) {
-                ForEach(genderOptions, id: \.self) { Text($0) }
+                ForEach(genderOptions, id: \.self) { option in
+                    Text(localizedGender(option)).tag(option)
+                }
             }
             .pickerStyle(.segmented)
         }
         .padding(.horizontal)
     }
+    
+    // 👇 เพิ่มฟังก์ชันนี้สำหรับแปลภาษาของตัวเลือกเพศ
+    private func localizedGender(_ key: String) -> String {
+        switch key {
+        case "ชาย": return language.localized("ชาย", "Male")
+        case "หญิง": return language.localized("หญิง", "Female")
+        case "อื่นๆ": return language.localized("อื่นๆ", "Other")
+        default: return key
+        }
+    }
+    // --------------------------
     
     func handleRegister() {
         let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -219,8 +227,6 @@ struct RegistrationView: View {
         return NSPredicate(format: "SELF MATCHES %@", regex).evaluate(with: email)
     }
     
-    // ... อยู่ใน struct RegistrationView ...
-    
     // ฟังก์ชันสำหรับ Hash รหัสผ่าน (ใช้ SHA256)
     private func hashPassword(_ password: String) -> String {
         let data = Data(password.utf8)
@@ -228,9 +234,6 @@ struct RegistrationView: View {
         return hashed.compactMap { String(format: "%02x", $0) }.joined()
     }
 } // <-- ปิดปีกกาของ RegistrationView
-
-// ✅ Field ปกติ
-// MARK: - (วางโค้ดนี้แทนที่ struct เดิมทั้งหมดที่ท้ายไฟล์)
 
 // ✅ Field ปกติ (ปรับปรุงแล้ว)
 struct InputField: View {

@@ -1,6 +1,6 @@
 import Foundation
 
-// สร้าง Enum ไว้ข้างนอก struct เพื่อให้เรียกใช้ง่าย
+// Enum ไม่มีการเปลี่ยนแปลง
 enum UserRole: String, Codable {
     case admin = "Admin"
     case user = "User"
@@ -11,6 +11,7 @@ enum AccountStatus: String, Codable {
     case suspended = "Suspended"
 }
 
+// แก้ไข struct Member
 struct Member: Identifiable, Codable {
     let id: UUID
     var email: String
@@ -24,11 +25,15 @@ struct Member: Identifiable, Codable {
     var carPlate: String
     var meritPoints: Int = 0
     
-    // 👇 เพิ่ม 3 บรรทัดนี้เข้าไป
+    // 👇 เพิ่ม 2 property นี้เข้าไป
+    var lastLogin: Date?                 // เก็บเวลาล็อกอินล่าสุด
+    var tagScores: [String: Int] = [:]   // เก็บแต้มของแต่ละ tag
+    
     var role: UserRole
     var status: AccountStatus
     var joinedDate: Date
     
+    // 👇 แก้ไข init เพิ่มเติม
     init(
         id: UUID = UUID(),
         email: String,
@@ -40,10 +45,11 @@ struct Member: Identifiable, Codable {
         phoneNumber: String,
         houseNumber: String,
         carPlate: String,
-        // 👇 เพิ่ม Parameter เหล่านี้เข้าไป
-        role: UserRole = .user, // กำหนดค่าเริ่มต้นเป็น user
-        status: AccountStatus = .active, // กำหนดค่าเริ่มต้นเป็น active
-        joinedDate: Date = Date() // กำหนดค่าเริ่มต้นเป็นวันปัจจุบัน
+        role: UserRole = .user,
+        status: AccountStatus = .active,
+        joinedDate: Date = Date(),
+        lastLogin: Date? = nil, // เพิ่ม parameter
+        tagScores: [String: Int] = [:] // เพิ่ม parameter
     ) {
         self.id = id
         self.email = email
@@ -55,10 +61,12 @@ struct Member: Identifiable, Codable {
         self.phoneNumber = phoneNumber
         self.houseNumber = houseNumber
         self.carPlate = carPlate
-        
-        // 👇 เพิ่มการกำหนดค่าให้ property ใหม่
         self.role = role
         self.status = status
         self.joinedDate = joinedDate
+        
+        // 👇 กำหนดค่า
+        self.lastLogin = lastLogin
+        self.tagScores = tagScores
     }
 }

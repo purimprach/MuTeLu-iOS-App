@@ -5,23 +5,25 @@ struct EditMemberView: View {
     var member: Member?
     var onSave: (Member) -> Void
     @Environment(\.dismiss) var dismiss
+    @EnvironmentObject var language: AppLanguage // 👈 เพิ่มเข้ามาเพื่อใช้ภาษา
     
     // MARK: - State Properties
     @State private var fullName = ""
     @State private var email = ""
     @State private var phoneNumber = ""
     @State private var birthdate = Date()
-    @State private var gender = "ไม่ระบุ"
+    @State private var gender = "ชาย" // 👈 เปลี่ยนค่าเริ่มต้น
     @State private var birthTime = ""
     @State private var houseNumber = ""
     @State private var carPlate = ""
     
-    // ✅ เปลี่ยนชื่อให้ชัดเจนขึ้น
     @State private var password = ""
     @State private var confirmPassword = ""
     
     @State private var showAlert = false
     @State private var alertMessage = ""
+    
+    private let genderOptions = ["ชาย", "หญิง", "อื่นๆ"] // 👈 ตัวเลือกเพศ
     
     private var navigationTitle: String {
         return member == nil ? "เพิ่มสมาชิก" : "แก้ไขสมาชิก"
@@ -30,7 +32,7 @@ struct EditMemberView: View {
     var body: some View {
         NavigationView {
             Form {
-                // ... ส่วนข้อมูลสมาชิก และ ข้อมูลเพิ่มเติม ...
+                // ... ส่วนข้อมูลสมาชิก (ไม่ต้องแก้ไข) ...
                 Section(header: Text("ข้อมูลสมาชิก (Member Info)")) {
                     TextField("ชื่อ-นามสกุล (Full Name)", text: $fullName)
                     TextField("Email", text: $email)
@@ -42,17 +44,21 @@ struct EditMemberView: View {
                 }
                 
                 Section(header: Text("ข้อมูลเพิ่มเติม (Additional Info)")) {
-                    TextField("เพศ (Gender)", text: $gender)
+                    // 👇 --- **ส่วนที่แก้ไข** ---
+                    Picker(language.localized("เพศ", "Gender"), selection: $gender) {
+                        ForEach(genderOptions, id: \.self) { option in
+                            Text(localizedGender(option)).tag(option)
+                        }
+                    }
+                    // ------------------------
+                    
                     TextField("เวลาเกิด (Time of Birth)", text: $birthTime)
                     TextField("บ้านเลขที่ (House Number)", text: $houseNumber)
                     TextField("ทะเบียนรถ (Car Plate)", text: $carPlate)
                 }
                 
-                // MARK: - ส่วนรหัสผ่าน (แสดงผลตลอด)
-                // ✅ [แก้ไขจุดที่ 1] - เอา if member != nil ออก และเปลี่ยนชื่อ Header
+                // ... ส่วนรหัสผ่าน (ไม่ต้องแก้ไข) ...
                 Section(header: Text("รหัสผ่าน (Password)")) {
-                    // ถ้าเป็นการเพิ่มใหม่ จะขึ้นว่า "รหัสผ่าน"
-                    // ถ้าเป็นการแก้ไข จะขึ้นว่า "ตั้งรหัสผ่านใหม่ (เว้นว่างไว้หากไม่ต้องการเปลี่ยน)"
                     let passwordPlaceholder = member == nil ? "รหัสผ่าน" : "ตั้งรหัสผ่านใหม่ (เว้นว่างไว้หากไม่ต้องการเปลี่ยน)"
                     
                     SecureField(passwordPlaceholder, text: $password)
@@ -81,6 +87,17 @@ struct EditMemberView: View {
     
     // MARK: - Functions
     
+    // 👇 เพิ่มฟังก์ชันแปลภาษาสำหรับเพศ
+    private func localizedGender(_ key: String) -> String {
+        switch key {
+        case "ชาย": return language.localized("ชาย", "Male")
+        case "หญิง": return language.localized("หญิง", "Female")
+        case "อื่นๆ": return language.localized("อื่นๆ", "Other")
+        default: return key
+        }
+    }
+    
+    // ... (ฟังก์ชันที่เหลือไม่ต้องแก้ไข) ...
     private func loadMemberData() {
         guard let m = member else { return }
         fullName = m.fullName
@@ -91,12 +108,9 @@ struct EditMemberView: View {
         birthTime = m.birthTime
         houseNumber = m.houseNumber
         carPlate = m.carPlate
-        // ไม่ต้องโหลดรหัสผ่านเก่ามาแสดง
     }
     
-    // ✅ [แก้ไขจุดที่ 2] - ปรับปรุง Logic การบันทึกทั้งหมด
     private func saveChanges() {
-        // --- การตรวจสอบข้อมูลพื้นฐาน ---
         guard !email.trimmingCharacters(in: .whitespaces).isEmpty,
               !fullName.trimmingCharacters(in: .whitespaces).isEmpty else {
             alertMessage = "กรุณากรอกชื่อและอีเมลให้ครบถ้วน"
@@ -104,10 +118,9 @@ struct EditMemberView: View {
             return
         }
         
-        // --- การตรวจสอบรหัสผ่าน ---
-        var passwordToSave = member?.password ?? "" // ถ้าเป็นการแก้ไข ให้ใช้รหัสผ่านเดิมเป็นค่าเริ่มต้น
+        var passwordToSave = member?.password ?? ""
         
-        if member == nil { // --- กรณีเพิ่มสมาชิกใหม่ ---
+        if member == nil {
             if password.isEmpty {
                 alertMessage = "กรุณากำหนดรหัสผ่านสำหรับสมาชิกใหม่"
                 showAlert = true
@@ -118,18 +131,17 @@ struct EditMemberView: View {
                 showAlert = true
                 return
             }
-            passwordToSave = hashPassword(password) // Hash รหัสผ่านใหม่
+            passwordToSave = hashPassword(password)
             
-        } else if !password.isEmpty { // --- กรณีแก้ไข และมีการกรอกรหัสผ่านใหม่ ---
+        } else if !password.isEmpty {
             if password != confirmPassword {
                 alertMessage = "รหัสผ่านใหม่และการยืนยันไม่ตรงกัน"
                 showAlert = true
                 return
             }
-            passwordToSave = hashPassword(password) // Hash รหัสผ่านใหม่
+            passwordToSave = hashPassword(password)
         }
         
-        // --- สร้างข้อมูลสมาชิกเพื่อบันทึก ---
         let memberToSave = Member(
             id: member?.id ?? UUID(),
             email: email,
@@ -156,4 +168,3 @@ struct EditMemberView: View {
         return hashed.compactMap { String(format: "%02x", $0) }.joined()
     }
 }
-

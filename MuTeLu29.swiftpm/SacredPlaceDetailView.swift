@@ -143,7 +143,20 @@ struct SacredPlaceDetailView: View {
                                         longitude: place.longitude
                                     )
                                     checkInStore.add(record: newRecord)
-                                    refreshTrigger = UUID() // Force UI refresh
+                                    
+                                    // 👇 --- **LÓGICA ADICIONADA AQUI** ---
+                                    // Encontra o usuário atual no memberStore
+                                    if let userIndex = memberStore.members.firstIndex(where: { $0.email == loggedInEmail }) {
+                                        // Itera sobre todas as tags deste local
+                                        for tag in place.tags {
+                                            // Adiciona a pontuação ao dicionário, começando em 1 se ainda não existir
+                                            memberStore.members[userIndex].tagScores[tag, default: 0] += 1
+                                        }
+                                        print("Pontuações de tags atualizadas para \(loggedInEmail): \(memberStore.members[userIndex].tagScores)")
+                                    }
+                                    // ------------------------
+                                    
+                                    refreshTrigger = UUID() // Força a atualização da UI
                                     showCheckinAlert = true
                                 }
                             }) {
@@ -171,7 +184,7 @@ struct SacredPlaceDetailView: View {
                         }
                     }
                     .padding(.horizontal)
-                    .id(refreshTrigger) // Force refresh when refreshTrigger changes
+                    .id(refreshTrigger) // Força a atualização quando refreshTrigger muda
                     
                     // ✅ ปุ่มติดต่อ
                     Button(action: {
@@ -224,7 +237,7 @@ struct SacredPlaceDetailView: View {
         
         return distance < 50000
     }
-        
+    
     func openInMaps() {
         let latitude = place.latitude
         let longitude = place.longitude
@@ -267,7 +280,7 @@ struct SacredPlaceDetailView: View {
         if let remaining = checkInStore.timeRemainingUntilNextCheckIn(email: loggedInEmail, placeID: place.id.uuidString) {
             timeRemaining = remaining
             if remaining <= 0 {
-                refreshTrigger = UUID() // Force UI refresh when countdown reaches 0
+                refreshTrigger = UUID() // Força a atualização da UI quando o contador chegar a 0
             }
         } else {
             timeRemaining = 0
