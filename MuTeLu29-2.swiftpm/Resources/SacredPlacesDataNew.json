@@ -1,0 +1,604 @@
+
+[
+    {
+        "nameTH": "พระบรมราชานุสาวรีย์ 2 รัชกาล",
+        "nameEN": "The Monument of Two Kings",
+        "descriptionTH": "พระบรมราชานุสาวรีย์สมเด็จพระปิยมหาราช (ร.5)และสมเด็จพระมหาธีรราชเจ้า (ร.6) หรือพระบรมราชานุสาวรีย์สองรัชกาล เป็นอนุสรณ์สถานที่ระลึกถึงพระบาทสมเด็จพระจุลจอมเกล้าเจ้าอยู่หัว และพระบาทสมเด็จพระมงกุฎเกล้าเจ้าอยู่หัว ในวาระครบรอบ 70 ปี (พ.ศ.2530) แห่งการสถาปนาจุฬาลงกรณ์มหาวิทยาลัย ประดิษฐานอยู่ด้านหน้าหอประชุมจุฬาลงกรณ์มหาวิทยาลัย ในพื้นที่แขวงปทุมวัน เขตปทุมวัน กรุงเทพมหานคร ที่ตั้งของพระบรมราชานุสาวรีย์ฯ ตรงกับทางเข้าด้านหน้าและหน้าบันของหอประชุมจุฬาฯ เป็นการออกแบบตำแหน่งตามหลักการทางภูมิสถาปัตยกรรม โดยทำให้พื้นที่เปิดโล่งด้านหน้าเสาธงและหอประชุมจุฬาฯ มีจุดสนใจ เป็นการส่งเสริมภูมิทัศน์ให้หอประชุมจุฬาฯ อาคารมหาจุฬาลงกรณ์และอาคารมหาวชิราวุธ พื้นที่เปิดโล่งบริเวณพระบรมราชานุสาวรีย์จึงมองเห็นได้ง่ายจากถนนพญาไทและกลายเป็นจุดสนใจของเขตปทุมวันและกรุงเทพมหานครไปพร้อมกัน พระบรมราชานุสาวรีย์สองรัชกาล เป็นอนุสรณ์สถานที่ใช้ประกอบพิธีสำคัญของจุฬาลงกรณ์มหาวิทยาลัย เช่น พิธีปฐมนิเทศและถวายสัตย์ปฏิญาณตนเป็นนิสิตจุฬาฯ พิธีถวายบังคมหลังรับพระราชทานปริญญาบัตรหรือถวายบังคมลา และเป็นสถานที่เคารพสักการะของนิสิต บุคคลากรและผู้มาเยือน เป็นที่ถวายสักการะของพระบรมวงศานุวงศ์เมื่อเสร็จพระราชดำเนินเยือนจุฬาลงกรณ์มหาวิทยาลัยในโอกาสต่าง ๆ พระบรมราชานุสาวรีย์แห่งนี้ปรากฏอยู่ในภาพถ่ายที่เกี่ยวกับจุฬาลงกรณ์มหาวิทยาลัยบ่อยครั้ง ถือเป็นสถานที่สำคัญแห่งหนึ่งในพื้นที่มหาวิทยาลัย",
+        "descriptionEN": "A sacred monument in the heart of Chulalongkorn University, featuring the statues of King Rama V and King Rama VI. Students and staff come to pay respect and pray for academic success and prosperity.",
+        "locationTH": "ลานพระบรมราชานุสาวรีย์กลางมหาวิทยาลัยจุฬาฯ (หน้าหอประชุมใหญ่)",
+        "locationEN": "Royal Monument Courtyard, Chulalongkorn University (in front of the main auditorium)",
+        "latitude": 13.73841,
+        "longitude": 100.53170,
+        "imageName": "TwoKing",
+        "tags": ["การเรียน","การงาน", "ขอพร", "ประวัติศาสตร์", "เคารพบูชา"],
+        "rating": 4.8,
+        "details": [
+            {
+                "key": {
+                    "th": "บทสวด",
+                    "en": "Prayer Chant"
+                },
+                "value": {
+                    "th": "นะโม ตัสสะ ภะคะวะโต อะระหะโต สัมมาสัมพุทธัสสะ (3 จบ) พระสะยามะมินโท วะโร อิติ พุทธะสังมิ อิติ อะระหัง สะหัสสะกายัง วะรัง พุทโธ นะโม พุทธายะ ปิยะ มะมะ นะโม พุทธายะ (กล่าวทั้งหมด 3จบ) วางของไหว้",
+                    "en": "Chant Namo 3 times and make your wish in silence."
+                }
+            },
+            {
+                "key": {
+                    "th": "วันเวลาทำการ",
+                    "en": "Operating Hours"
+                },
+                "value": {
+                    "th": "เปิดทุกวัน 06:00 - 21:00 น.",
+                    "en": "Open daily 06:00 - 21:00"
+                }
+            },
+            {
+                "key": {
+                    "th": "เครื่องสักการะ",
+                    "en": "Offerings"
+                },
+                "value": {
+                    "th": "ดอกกุหลาบสีชมพู พวงมาลัย ซิการ์ บรั่นดี หมากพลู ข้าวคลุกกะปิ ทองหยิบทองหยอด น้ำมะพร้าวอ่อน กล้วยน้ำว้า ธูป เทียน ไฟแช็ค",
+                    "en": "Garland, 3 incense sticks, candles"
+                }
+            },
+            {
+                "key": {
+                    "th": "การแต่งกาย",
+                    "en": "Dress Code"
+                },
+                "value": {
+                    "th": "ชุดสุภาพ",
+                    "en": "Polite outfit"
+                }
+            },
+            {
+                "key": {
+                    "th": "สิ่งศักดิ์สิทธิ์ไว้บูชา",
+                    "en": "Sacred objects of worship"
+                },
+                "value": {
+                    "th": "-",
+                    "en": "-"
+                }
+            },
+            {
+                "key": {
+                    "th": "คำเตือน",
+                    "en": "Warnings"
+                },
+                "value": {
+                    "th": "ไหว้ครั้งแรก จุดธูป 16 ดอก เคยไหว้แล้ว 9 ดอก และที่นี่ห้ามบนนะครับ",
+                    "en": "Please maintain silence and avoid loud noises"
+                }
+            }
+        ]
+    },
+    {
+        "nameTH": "ศาลเจ้าพ่อเสือสามย่าน",
+        "nameEN": "Tiger God Shrine Samyan",
+        "descriptionTH": "ศาลเจ้าที่นิยมไหว้ก่อนสอบหรือสัมภาษณ์ ขอพรเรื่องโชคลาภ การเรียน การงาน",
+        "descriptionEN": "Popular shrine for praying before exams or interviews. People ask for luck, studies, and career success.",
+        "locationTH": "ด้านหลังสามย่านมิตรทาวน์ (ซอย จุฬา50)",
+        "locationEN": "Behind Samyan Mitrtown (Chula Soi 50)",
+        "latitude": 13.73398,
+        "longitude": 100.52720,
+        "imageName": "TigerShrine",
+        "tags": ["การเรียน","การงาน", "การสอบแข่งขัน", "โชคลาภ", "สัมภาษณ์"],
+        "rating": 4.6,
+        "details": [
+            {
+                "key": {
+                    "th": "บทสวด",
+                    "en": "Prayer Chant"
+                },
+                "value": {
+                    "th": "โอม อะหัง กุรุ กะมะลา ศรีตะระ นะมะ",
+                    "en": "Om Ahang Kuru Kamala Sri Tara Nama"
+                }
+            },
+            {
+                "key": {
+                    "th": "วันเวลาทำการ",
+                    "en": "Operating Hours"
+                },
+                "value": {
+                    "th": "06:00 - 20:00 น.",
+                    "en": "06:00 - 20:00"
+                }
+            },
+            {
+                "key": {
+                    "th": "สิ่งที่ต้องเตรียม",
+                    "en": "Preparation Items"
+                },
+                "value": {
+                    "th": "ธูป 3 ดอก, กระดาษเงินกระดาษทอง",
+                    "en": "3 incense sticks, golden paper, silver paper"
+                }
+            },
+            {
+                "key": {
+                    "th": "การแต่งกาย",
+                    "en": "Dress Code"
+                },
+                "value": {
+                    "th": "เรียบร้อย ไม่เปิดเผย",
+                    "en": "Proper, non-revealing clothing"
+                }
+            },
+            {
+                "key": {
+                    "th": "ของศักดิ์สิทธิ์",
+                    "en": "Sacred Offerings"
+                },
+                "value": {
+                    "th": "รูปเสือทอง, เทียนแดง",
+                    "en": "Golden tiger figure, red candles"
+                }
+            },
+            {
+                "key": {
+                    "th": "คำเตือน",
+                    "en": "Warnings"
+                },
+                "value": {
+                    "th": "อย่าพูดจาหยาบคายหรือขอพรเกินตัว",
+                    "en": "Avoid profanity or making excessive wishes"
+                }
+            }
+        ]
+    },
+    {
+        "nameTH": "ศาลพระโพธิสัตว์ไต่เซี่ยฮุกโจ้ว",
+        "nameEN": "Bodhisattva Tai Sia Hook Jow Shrine",
+        "descriptionTH": "ศาลพระโพธิสัตว์ไต่เซี่ยฮุกโจ้วเป็นสถานที่ศักดิ์สิทธิ์บริเวณหน้าตึกจามจุรีสแควร์ ชาวจีนและชาวไทยนิยมมากราบไหว้ขอพรเกี่ยวกับความสำเร็จ การงาน สุขภาพ และความเจริญรุ่งเรือง",
+        "descriptionEN": "The shrine of Bodhisattva Tai Sia Hook Jow is located in front of Chamchuri Square. It's a sacred place where Thai and Chinese worshippers pray for success, career, health, and prosperity.",
+        "locationTH": "บริเวณหน้าตึกจามจุรีสแควร์ (ใกล้ทางเข้า, ฝั่งถนนพญาไท)",
+        "locationEN": "Front area of Chamchuri Square (near entrance, Phaya Thai side)",
+        "latitude": 13.73343,
+        "longitude": 100.52908,
+        "imageName": "TaiSiaHookJow",
+        "tags": ["ความสำเร็จ","การงาน", "สุขภาพ", "ความเจริญรุ่งเรือง", "ค้าขาย"],
+        "rating": 4.7,
+        "details": [
+            {
+                "key": {
+                    "th": "บทสวด",
+                    "en": "Prayer Chant"
+                },
+                "value": {
+                    "th": "นะโม ตัสสะ ภะคะวะโต อะระหะโต สัมมาสัมพุทธัสสะ (3 จบ)",
+                    "en": "Namo Tassa Bhagavato Arahato Samma Sambuddhassa (3 times)"
+                }
+            },
+            {
+                "key": {
+                    "th": "วันเวลาทำการ",
+                    "en": "Operating Hours"
+                },
+                "value": {
+                    "th": "07:00 - 19:00 น.",
+                    "en": "07:00 - 19:00"
+                }
+            },
+            {
+                "key": {
+                    "th": "สิ่งที่ต้องเตรียม",
+                    "en": "Preparation Items"
+                },
+                "value": {
+                    "th": "ธูป 9 ดอก, เทียน, ดอกไม้",
+                    "en": "9 incense sticks, candles, flowers"
+                }
+            },
+            {
+                "key": {
+                    "th": "การแต่งกาย",
+                    "en": "Dress Code"
+                },
+                "value": {
+                    "th": "เรียบร้อย ไม่ใส่เสื้อผ้ารัดรูป",
+                    "en": "Polite, no tight-fitting clothing"
+                }
+            },
+            {
+                "key": {
+                    "th": "ของศักดิ์สิทธิ์",
+                    "en": "Sacred Offerings"
+                },
+                "value": {
+                    "th": "น้ำมันงา, ดอกบัว",
+                    "en": "Sesame oil, lotus flower"
+                }
+            },
+            {
+                "key": {
+                    "th": "คำเตือน",
+                    "en": "Warnings"
+                },
+                "value": {
+                    "th": "ห้ามใช้แฟลชถ่ายรูปหรือปีนขึ้นบนแท่น",
+                    "en": "Do not use flash or climb on the altar"
+                }
+            }
+        ]
+    },
+    {
+        "nameTH": "วัดหัวลำโพง",
+        "nameEN": "Wat Hua Lamphong",
+        "descriptionTH": "วัดที่นิยมทำบุญโลงศพ เสริมบุญ แก้ปีชง สะเดาะเคราะห์",
+        "descriptionEN": "Famous for merit-making with coffins, and for spiritual cleansing and luck improvement.",
+        "locationTH": "MRT หัวลำโพง (เดินจากจุฬาประมาณ 15 นาที)",
+        "locationEN":"Near Hua Lamphong MRT (15 min walk from Chula)",
+        "latitude": 13.73201,
+        "longitude": 100.52908,
+        "imageName": "WatHuaLamPhong",
+        "tags": ["เสริมดวง","แก้ปีชง", "สะเดาะเคราะห์", "ทำบุญโลงศพ", "อุทิศส่วนกุศล"],
+        "rating": 4.5,
+        "details": [
+            {
+                "key": {
+                    "th": "บทสวด",
+                    "en": "Prayer Chant"
+                },
+                "value": {
+                    "th": "นะโมพุทธายะ (7 จบ) แล้วกล่าวอธิษฐาน",
+                    "en": "Namo Buddhaya (7 times), then make a wish"
+                }
+            },
+            {
+                "key": {
+                    "th": "วันเวลาทำการ",
+                    "en": "Operating Hours"
+                },
+                "value": {
+                    "th": "เปิดทุกวัน 06:00 - 22:00 น.",
+                    "en": "Open daily 06:00 - 22:00"
+                }
+            },
+            {
+                "key": {
+                    "th": "สิ่งที่ต้องเตรียม",
+                    "en": "Preparation Items"
+                },
+                "value": {
+                    "th": "ชุดทำบุญโลงศพ, ธูป เทียน",
+                    "en": "Coffin donation set, incense, candles"
+                }
+            },
+            {
+                "key": {
+                    "th": "การแต่งกาย",
+                    "en": "Dress Code"
+                },
+                "value": {
+                    "th": "สุภาพ, ไม่เปิดเผย",
+                    "en": "Polite, non-revealing"
+                }
+            },
+            {
+                "key": {
+                    "th": "ของศักดิ์สิทธิ์",
+                    "en": "Sacred Offerings"
+                },
+                "value": {
+                    "th": "ชุดบริจาค, น้ำดื่ม",
+                    "en": "Donation set, drinking water"
+                }
+            },
+            {
+                "key": {
+                    "th": "คำเตือน",
+                    "en": "Warnings"
+                },
+                "value": {
+                    "th": "โปรดอย่าส่งเสียงดังภายในศาลา",
+                    "en": "Please stay quiet inside the hall"
+                }
+            }
+        ]
+    },
+    {
+        "nameTH": "ศาลเจ้าแม่ทับทิม สะพานเหลือง",
+        "nameEN": "Tuptim Shrine Saphan Lueang",
+        "descriptionTH": "ศาลเจ้าแม่ทับทิมเป็นสถานที่ศักดิ์สิทธิ์ที่ชาวไทยเชื้อสายจีนให้ความเคารพนับถือ โดยเฉพาะในเรื่องของการขอพรด้านการเรียน การงาน และโชคลาภ",
+        "descriptionEN": "Tuptim Shrine is a sacred site for Thai-Chinese worshippers, especially popular for praying about education, career, and good fortune.",
+        "locationTH": "ซอยจุฬา 7 แขวงวังใหม่ เขตปทุมวัน กรุงเทพมหานคร",
+        "locationEN":"Chula Soi 7, Wang Mai, Pathum Wan, Bangkok",
+        "latitude": 13.73800,
+        "longitude": 100.52404,
+        "imageName": "TuptimShrine",
+        "tags": ["ความรัก","ชอบุตร", "ครอบครัว", "ค้าขาย", "ความราบรื่น"],
+        "rating": 4.6,
+        "details": [
+            {
+                "key": {
+                    "th": "บทสวด",
+                    "en": "Prayer Chant"
+                },
+                "value": {
+                    "th": "โอม มะณี ปัทเม หุม",
+                    "en": "Om Mani Padme Hum"
+                }
+            },
+            {
+                "key": {
+                    "th": "วันเวลาทำการ",
+                    "en": "Operating Hours"
+                },
+                "value": {
+                    "th": "08:00 - 19:00 น.",
+                    "en": "08:00 - 19:00"
+                }
+            },
+            {
+                "key": {
+                    "th": "สิ่งที่ต้องเตรียม",
+                    "en": "Preparation Items"
+                },
+                "value": {
+                    "th": "ธูปแดง 3 ดอก, ผลไม้, กระดาษไหว้เจ้า",
+                    "en": "3 red incense sticks, fruits, joss paper"
+                }
+            },
+            {
+                "key": {
+                    "th": "การแต่งกาย",
+                    "en": "Dress Code"
+                },
+                "value": {
+                    "th": "สุภาพเรียบร้อย",
+                    "en": "Proper and respectful clothing"
+                }
+            },
+            {
+                "key": {
+                    "th": "ของศักดิ์สิทธิ์",
+                    "en": "Sacred Offerings"
+                },
+                "value": {
+                    "th": "รูปเจ้าแม่, ดอกไม้แดง",
+                    "en": "Goddess image, red flowers"
+                }
+            },
+            {
+                "key": {
+                    "th": "คำเตือน",
+                    "en": "Warnings"
+                },
+                "value": {
+                    "th": "ควรงดของมีคมและแอลกอฮอล์",
+                    "en": "Avoid sharp objects and alcohol"
+                }
+            }
+        ]
+    },
+    {
+        "nameTH": "วัดพระศรีมหาอุมาเทวี (วัดแขก สีลม)",
+        "nameEN": "Wat Phra Si Maha Uma Devi (Wat Khaek Silom)",
+        "descriptionTH": "วัดพระศรีมหาอุมาเทวี หรือวัดแขก เป็นวัดฮินดูที่มีความสำคัญในกรุงเทพฯ ผู้คนมักมาขอพรเรื่องความรักและความสำเร็จในชีวิต",
+        "descriptionEN": "Wat Khaek Silom is a significant Hindu temple in Bangkok where visitors pray for love and life success.",
+        "locationTH": "ถนนสีลม แขวงสีลม เขตบางรัก กรุงเทพมหานคร",
+        "locationEN":"Silom Road, Bang Rak, Bangkok",
+        "latitude": 13.72427,
+        "longitude": 100.52291,
+        "imageName": "WatKhaekSilom",
+        "tags": ["ความรัก","ความสำเร็จ", "การงาน", "การเงิน", "ขจัดอุปสรรค"],
+        "rating": 4.7,
+        "details": [
+            {
+                "key": {
+                    "th": "บทสวด",
+                    "en": "Prayer Chant"
+                },
+                "value": {
+                    "th": "โอม ศรี อุมาเทวี นะมะฮา",
+                    "en": "Om Sri Uma Devi Namaha"
+                }
+            },
+            {
+                "key": {
+                    "th": "วันเวลาทำการ",
+                    "en": "Operating Hours"
+                },
+                "value": {
+                    "th": "06:00 - 20:00 น.",
+                    "en": "06:00 - 20:00"
+                }
+            },
+            {
+                "key": {
+                    "th": "สิ่งที่ต้องเตรียม",
+                    "en": "Preparation Items"
+                },
+                "value": {
+                    "th": "ดอกไม้, น้ำมันหอม, ผลไม้",
+                    "en": "Flowers, aromatic oils, fruits"
+                }
+            },
+            {
+                "key": {
+                    "th": "การแต่งกาย",
+                    "en": "Dress Code"
+                },
+                "value": {
+                    "th": "ชุดสุภาพ ไม่เปิดไหล่หรือขาสั้น",
+                    "en": "Polite; no bare shoulders or shorts"
+                }
+            },
+            {
+                "key": {
+                    "th": "ของศักดิ์สิทธิ์",
+                    "en": "Sacred Offerings"
+                },
+                "value": {
+                    "th": "สายสิญจน์แดง, ดอกไม้สีสด",
+                    "en": "Red thread, bright flowers"
+                }
+            },
+            {
+                "key": {
+                    "th": "คำเตือน",
+                    "en": "Warnings"
+                },
+                "value": {
+                    "th": "ไม่ควรลบหลู่เทพเจ้า",
+                    "en": "Do not disrespect the deities"
+                }
+            }
+        ]
+    },
+    {
+        "nameTH": "ศาลเจ้าแม่กวนอิม มูลนิธิเทียนฟ้า",
+        "nameEN": "Guan Yin Shrine, Thian Fah Foundation",
+        "descriptionTH": "ศาลเจ้าแม่กวนอิมแห่งนี้เป็นที่เคารพนับถือของชาวไทยเชื้อสายจีน ผู้คนมักมาขอพรเรื่องสุขภาพและความเมตตา",
+        "descriptionEN": "This shrine is revered by Thai-Chinese people, who come to pray for health and compassion.",
+        "locationTH": "ถนนเยาวราช แขวงสัมพันธวงศ์ เขตสัมพันธวงศ์ กรุงเทพมหานคร",
+        "locationEN":"Yaowarat Road, Samphanthawong, Bangkok",
+        "latitude": 13.73806,
+        "longitude": 100.51247,
+        "imageName": "GuanYinShrine",
+        "tags": ["สุขภาพ","รักษาโรค", "ขอพร", "ความเมตตา", "แคล้วคลาดปลอดภัย"],
+        "rating": 4.8,
+        "details": [
+            {
+                "key": {
+                    "th": "บทสวด",
+                    "en": "Prayer Chant"
+                },
+                "value": {
+                    "th": "นะโม กวนอิม โพธิสัตโต อีมิหัง (3 จบ)",
+                    "en": "Namo Guan Yin Bodhisattva Imihang (3 times)"
+                }
+            },
+            {
+                "key": {
+                    "th": "วันเวลาทำการ",
+                    "en": "Operating Hours"
+                },
+                "value": {
+                    "th": "07:00 - 20:00 น.",
+                    "en": "07:00 - 20:00"
+                }
+            },
+            {
+                "key": {
+                    "th": "สิ่งที่ต้องเตรียม",
+                    "en": "Preparation Items"
+                },
+                "value": {
+                    "th": "ธูป, ดอกไม้, น้ำสะอาด",
+                    "en": "Incense, flowers, clean water"
+                }
+            },
+            {
+                "key": {
+                    "th": "การแต่งกาย",
+                    "en": "Dress Code"
+                },
+                "value": {
+                    "th": "สุภาพ ไม่ใส่เสื้อแขนกุด",
+                    "en": "Polite, no sleeveless tops"
+                }
+            },
+            {
+                "key": {
+                    "th": "ของศักดิ์สิทธิ์",
+                    "en": "Sacred Offerings"
+                },
+                "value": {
+                    "th": "รูปปั้นเจ้าแม่กวนอิม, น้ำมนต์",
+                    "en": "Guan Yin statue, holy water"
+                }
+            },
+            {
+                "key": {
+                    "th": "คำเตือน",
+                    "en": "Warnings"
+                },
+                "value": {
+                    "th": "ห้ามลบหลู่หรือสัมผัสองค์เทพโดยตรง",
+                    "en": "Do not touch the deity or behave disrespectfully"
+                }
+            }
+        ]
+    },
+    {
+        "nameTH": "วัดแก้วแจ่มฟ้า",
+        "nameEN": "Wat Kaew Jam Fa",
+        "descriptionTH": "วัดแก้วแจ่มฟ้าเป็นวัดที่มีความเงียบสงบ เหมาะสำหรับการสักการะและขอพรในเรื่องของสุขภาพและความเจริญรุ่งเรือง",
+        "descriptionEN": "Wat Kaew Jam Fa is a peaceful temple ideal for prayer, health, and prosperity wishes.",
+        "locationTH": "ซอยเจริญกรุง 39 แขวงสี่พระยา เขตบางรัก กรุงเทพมหานคร",
+        "locationEN":"Charoen Krung Soi 39, Si Phraya, Bang Rak, Bangkok",
+        "latitude": 13.73147,
+        "longitude": 100.51962,
+        "imageName": "WatKaewJamFa",
+        "tags": ["ทำบุญ","เสริมดวง", "อุทิศส่วนกุศล", "ค้าขาย", "ความเจริญรุ่งเรือง"],
+        "rating": 4.4,
+        "details": [
+            {
+                "key": {
+                    "th": "บทสวด",
+                    "en": "Prayer Chant"
+                },
+                "value": {
+                    "th": "นะโม 3 จบ แล้วกล่าวอธิษฐานเรื่องสุขภาพ",
+                    "en": "Chant Namo 3 times and pray for good health"
+                }
+            },
+            {
+                "key": {
+                    "th": "วันเวลาทำการ",
+                    "en": "Operating Hours"
+                },
+                "value": {
+                    "th": "06:00 - 18:00 น.",
+                    "en": "06:00 - 18:00"
+                }
+            },
+            {
+                "key": {
+                    "th": "สิ่งที่ต้องเตรียม",
+                    "en": "Preparation Items"
+                },
+                "value": {
+                    "th": "ดอกไม้, เทียน, น้ำเปล่า",
+                    "en": "Flowers, candles, drinking water"
+                }
+            },
+            {
+                "key": {
+                    "th": "การแต่งกาย",
+                    "en": "Dress Code"
+                },
+                "value": {
+                    "th": "สุภาพ สวมเสื้อมีแขน",
+                    "en": "Polite, wear sleeved shirts"
+                }
+            },
+            {
+                "key": {
+                    "th": "ของศักดิ์สิทธิ์",
+                    "en": "Sacred Offerings"
+                },
+                "value": {
+                    "th": "น้ำมนต์, ดอกดาวเรือง",
+                    "en": "Holy water, marigold flowers"
+                }
+            },
+            {
+                "key": {
+                    "th": "คำเตือน",
+                    "en": "Warnings"
+                },
+                "value": {
+                    "th": "งดใช้เสียงดังหรือถ่ายภาพโดยไม่อนุญาต",
+                    "en": "Avoid noise or unauthorized photography"
+                }
+            }
+        ]
+    }
+]
+
