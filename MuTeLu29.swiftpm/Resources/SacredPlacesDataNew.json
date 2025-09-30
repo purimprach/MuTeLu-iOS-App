@@ -10,7 +10,7 @@
         "latitude": 13.73841,
         "longitude": 100.53170,
         "imageName": "TwoKing",
-        "tags": ["การเรียน","การงาน", "ขอพร", "ประวัติศาสตร์", "เคารพบูชา"],
+        "tags": ["การเรียน/การสอบ","การงาน/ความสำเร็จ", "ขอพร"],
         "rating": 4.8,
         "details": [
             {
@@ -85,7 +85,7 @@
         "latitude": 13.73398,
         "longitude": 100.52720,
         "imageName": "TigerShrine",
-        "tags": ["การเรียน","การงาน", "การสอบแข่งขัน", "โชคลาภ", "สัมภาษณ์"],
+        "tags": ["การเรียน/การสอบ","ขอพร", "การเงิน/โชคลาภ","ค้าขาย"],
         "rating": 4.6,
         "details": [
             {
@@ -160,7 +160,7 @@
         "latitude": 13.73343,
         "longitude": 100.52908,
         "imageName": "TaiSiaHookJow",
-        "tags": ["ความสำเร็จ","การงาน", "สุขภาพ", "ความเจริญรุ่งเรือง", "ค้าขาย"],
+        "tags": ["การงาน/ความสำเร็จ", "สุขภาพ", "ความเจริญรุ่งเรือง","แคล้วคลาดปลอดภัย"],
         "rating": 4.7,
         "details": [
             {
@@ -235,7 +235,7 @@
         "latitude": 13.73201,
         "longitude": 100.52908,
         "imageName": "WatHuaLamPhong",
-        "tags": ["เสริมดวง","แก้ปีชง", "สะเดาะเคราะห์", "ทำบุญโลงศพ", "อุทิศส่วนกุศล"],
+        "tags": ["การเงิน/โชคลาภ", "เสริมดวง/แก้เคราะห์", "ความเจริญรุ่งเรือง","ขอพร"],
         "rating": 4.5,
         "details": [
             {
@@ -310,7 +310,7 @@
         "latitude": 13.73800,
         "longitude": 100.52404,
         "imageName": "TuptimShrine",
-        "tags": ["ความรัก","ชอบุตร", "ครอบครัว", "ค้าขาย", "ความราบรื่น"],
+        "tags": ["ความรัก/ครอบครัว", "การเงิน/โชคลาภ", "การเรียน/การสอบ","แคล้วคลาดปลอดภัย"],
         "rating": 4.6,
         "details": [
             {
@@ -385,7 +385,7 @@
         "latitude": 13.72427,
         "longitude": 100.52291,
         "imageName": "WatKhaekSilom",
-        "tags": ["ความรัก","ความสำเร็จ", "การงาน", "การเงิน", "ขจัดอุปสรรค"],
+        "tags": ["ความรัก/ครอบครัว","การงาน/ความสำเร็จ", "การเงิน/โชคลาภ","เสริมดวง/แก้เคราะห์","ขอพร"],
         "rating": 4.7,
         "details": [
             {
@@ -460,7 +460,7 @@
         "latitude": 13.73806,
         "longitude": 100.51247,
         "imageName": "GuanYinShrine",
-        "tags": ["สุขภาพ","รักษาโรค", "ขอพร", "ความเมตตา", "แคล้วคลาดปลอดภัย"],
+        "tags": ["สุขภาพ", "ความรัก/ครอบครัว", "การงาน/ความสำเร็จ","การเงิน/โชคลาภ","ค้าขาย"],
         "rating": 4.8,
         "details": [
             {
@@ -535,7 +535,7 @@
         "latitude": 13.73147,
         "longitude": 100.51962,
         "imageName": "WatKaewJamFa",
-        "tags": ["ทำบุญ","เสริมดวง", "อุทิศส่วนกุศล", "ค้าขาย", "ความเจริญรุ่งเรือง"],
+        "tags": ["เสริมดวง/แก้เคราะห์", "สุขภาพ", "ค้าขาย", "ความเจริญรุ่งเรือง"],
         "rating": 4.4,
         "details": [
             {
@@ -599,6 +599,122 @@
                 }
             }
         ]
+    },
+    {
+        "nameTH": "พระพิฆเนศ เซ็นทรัลเวิลด์ (หน้าอิเซตันเดิม)",
+        "nameEN": "Ganesha Shrine CentralWorld (Former Isetan)",
+        "descriptionTH": "เทพแห่งความสำเร็จ พระองค์ทรงเป็นที่นับถือในฐานะเทพแห่งศิลปวิทยาการ เทพแห่งขจัดอุปสรรคความขัดข้อง ดังนั้นหากผู้ใดเป็นผู้รู้และประสบความสำเร็จต่อกิจการก็มักจะบูชาพระพิฆเนศ อีกทั้งทรงเป็นดั่งเทพผู้ทรงบันดาลความสำเร็จและพระผู้ปกป้องคุ้มครองจากภยันตรายและเป็นยอดกตัญญู แม้พระพิฆเนศวรจะเป็นเทพที่มีความเก่งกาจสามารถยิ่ง แต่ก็เป็นเทพที่สงบนิ่งไม่เย่อหยิ่งทรนง อันเป็นคุณสมบัติอันประเสริฐอีกประการหนึ่งของผู้ยิ่งใหญ่อย่างแท้จริง จึงกล่าวได้ว่า พระพิฆเนศวรเป็นมหาเทพที่ดีพร้อมครบถ้วนด้วยความดีงามสมควรแก่การยกย่องบูชาเป็นนิจ เป็นที่เคารพของคนไทยเป็นอย่างมาก พระพิฆเนศเป็นเทพเจ้าที่ได้รับความเคารพอย่างสูงในด้านศิลปะ ความรู้ ความสำเร็จ และการขจัดอุปสรรค ศาลพระพิฆเนศหน้าอิเซตัน (ปัจจุบันเป็นส่วนหนึ่งของเซ็นทรัลเวิลด์) เป็นที่นิยมของผู้ที่มาขอพรเรื่องการงาน ความสำเร็จ และการเรียน โดยเฉพาะนักศึกษาและคนทำงาน",
+        "descriptionEN": "The deity of success, Ganesha, is revered as the god of arts, knowledge, and the remover of obstacles. Those who seek wisdom and success in their endeavors often worship him. He is also regarded as the divine source of prosperity, a protector against danger, and a symbol of filial piety.Although Ganesha possesses extraordinary abilities, he remains calm and humble—qualities that exemplify the true greatness of a noble being. Thus, Ganesha is considered a supreme deity, complete with virtues deserving of eternal reverence and worship, and is highly respected by Thai people.The Ganesha Shrine in front of the former Isetan (now part of CentralWorld) is especially popular among students and professionals who come to pray for success in their studies, careers, and personal achievements.",
+        "locationTH": "ลานหน้าอิเซตันเดิม ศูนย์การค้าเซ็นทรัลเวิลด์ ถนนราชประสงค์",
+        "locationEN": "In front of former Isetan zone, CentralWorld, Ratchaprasong area",
+        "latitude": 13.74625,
+        "longitude": 100.53933,
+        "imageName": "GaneshaCentralWorld",
+        "tags": ["การงาน/ความสำเร็จ", "การเรียน/การสอบ", "เสริมดวง/แก้เคราะห์", "ขอพร"],
+        "rating": 4.7,
+        "details": [
+            {
+                "key": {"th": "บทสวด", "en": "Prayer Chant"},
+                "value": {"th": "โอม ศรี คเณศายะ นะมะฮา", "en": "Om Sri Ganesha Namaha"}
+            },
+            {
+                "key": {"th": "วันเวลาทำการ", "en": "Operating Hours"},
+                "value": {"th": "เปิดทุกวัน 07:00 - 21:00 น.", "en": "Open daily 07:00 - 21:00"}
+            },
+            {
+                "key": {"th": "สิ่งที่ต้องเตรียม", "en": "Preparation Items"},
+                "value": {"th": "ดอกกุหลาบ, ผลไม้, นม, ธูป", "en": "Flowers, fruits, milk, incense"}
+            },
+            {
+                "key": {"th": "การแต่งกาย", "en": "Dress Code"},
+                "value": {"th": "สุภาพ, ไม่เปิดเผย", "en": "Polite, non-revealing clothing"}
+            },
+            {
+                "key": {"th": "ของศักดิ์สิทธิ์", "en": "Sacred Offerings"},
+                "value": {"th": "รูปปั้นพระพิฆเนศ", "en": "Ganesha statue"}
+            },
+            {
+                "key": {"th": "คำเตือน", "en": "Warnings"},
+                "value": {"th": "ไม่ควรบนบาน, ให้สวดด้วยจิตสงบ", "en": "Avoid making excessive vows; pray with calm mind"}
+            }
+        ]
+    },
+    {
+        "nameTH": "วัดปทุมวนารามราชวรวิหาร",
+        "nameEN": "Wat Pathum Wanaram Ratchaworawihan",
+        "descriptionTH": "วัดปทุมวนารามเป็นวัดพระอารามหลวงที่ตั้งอยู่ใจกลางเมือง ระหว่างสยามพารากอนและเซ็นทรัลเวิลด์ เป็นสถานที่สงบที่นิยมมาทำบุญ ไหว้พระ และอุทิศส่วนกุศล",
+        "descriptionEN": "Wat Pathum Wanaram is a royal temple located between Siam Paragon and CentralWorld. It offers a peaceful sanctuary in the city for merit-making, praying, and spiritual reflection.",
+        "locationTH": "ถนนพระราม 1 แขวงปทุมวัน เขตปทุมวัน กรุงเทพมหานคร",
+        "locationEN": "Rama I Road, Pathum Wan, Bangkok (between Siam Paragon and CentralWorld)",
+        "latitude": 13.74500,
+        "longitude": 100.53428,
+        "imageName": "WatPathumwanaram",
+        "tags": ["เสริมดวง/แก้เคราะห์", "การงาน/ความสำเร็จ", "สุขภาพ", "การเรียน/การสอบ"],
+        "rating": 4.6,
+        "details": [
+            {
+                "key": {"th": "บทสวด", "en": "Prayer Chant"},
+                "value": {"th": "นะโม ตัสสะ ภะคะวะโต... (3 จบ)", "en": "Namo Tassa Bhagavato... (3 times)"}
+            },
+            {
+                "key": {"th": "วันเวลาทำการ", "en": "Operating Hours"},
+                "value": {"th": "เปิดทุกวัน 06:00 - 18:00 น.", "en": "Open daily 06:00 - 18:00"}
+            },
+            {
+                "key": {"th": "สิ่งที่ต้องเตรียม", "en": "Preparation Items"},
+                "value": {"th": "ธูป, เทียน, ดอกไม้", "en": "Incense, candles, flowers"}
+            },
+            {
+                "key": {"th": "การแต่งกาย", "en": "Dress Code"},
+                "value": {"th": "ชุดสุภาพ, เหมาะสมสำหรับวัด", "en": "Polite attire appropriate for temples"}
+            },
+            {
+                "key": {"th": "ของศักดิ์สิทธิ์", "en": "Sacred Offerings"},
+                "value": {"th": "พระพุทธรูปปทุมรัตนประสิทธิ์", "en": "Phra Buddha Pathumrattana Prasit image"}
+            },
+            {
+                "key": {"th": "คำเตือน", "en": "Warnings"},
+                "value": {"th": "งดส่งเสียงดังภายในวัด", "en": "Please keep silence inside the temple"}
+            }
+        ]
+    },
+    {
+        "nameTH": "ศาลพระพรหม แยกราชประสงค์",
+        "nameEN": "Erawan Shrine (Phra Phrom, Ratchaprasong)",
+        "descriptionTH": "ศาลพระพรหมเอราวัณเป็นสถานที่ศักดิ์สิทธิ์ที่มีชื่อเสียงระดับนานาชาติ ผู้คนจากทั่วโลกนิยมมาขอพรเรื่องการงาน ความรัก และความสำเร็จ",
+        "descriptionEN": "The Erawan Shrine at Ratchaprasong is one of the most famous spiritual landmarks in Bangkok, attracting visitors worldwide to pray for love, career, and success.",
+        "locationTH": "แยกราชประสงค์ หน้าโรงแรมแกรนด์ไฮแอทเอราวัณ",
+        "locationEN": "Ratchaprasong Intersection, in front of Grand Hyatt Erawan Hotel",
+        "latitude": 13.74455,
+        "longitude": 100.53917,
+        "imageName": "ErawanShrine",
+        "tags": ["ความรัก/ครอบครัว", "การงาน/ความสำเร็จ", "การเงิน/โชคลาภ", "เสริมดวง/แก้เคราะห์", "ขอพร"],
+        "rating": 4.9,
+        "details": [
+            {
+                "key": {"th": "บทสวด", "en": "Prayer Chant"},
+                "value": {"th": "โอม พรหมหะ นะมะฮา", "en": "Om Brahma Namaha"}
+            },
+            {
+                "key": {"th": "วันเวลาทำการ", "en": "Operating Hours"},
+                "value": {"th": "เปิดทุกวัน 06:00 - 22:00 น.", "en": "Open daily 06:00 - 22:00"}
+            },
+            {
+                "key": {"th": "สิ่งที่ต้องเตรียม", "en": "Preparation Items"},
+                "value": {"th": "ธูป 12 ดอก, เทียน, พวงมาลัย", "en": "12 incense sticks, candles, garlands"}
+            },
+            {
+                "key": {"th": "การแต่งกาย", "en": "Dress Code"},
+                "value": {"th": "สุภาพเรียบร้อย", "en": "Proper and respectful clothing"}
+            },
+            {
+                "key": {"th": "ของศักดิ์สิทธิ์", "en": "Sacred Offerings"},
+                "value": {"th": "รูปสี่หน้า (พระพรหม)", "en": "Four-faced Brahma statue"}
+            },
+            {
+                "key": {"th": "คำเตือน", "en": "Warnings"},
+                "value": {"th": "ห้ามปีนหรือสัมผัสองค์พระพรหม", "en": "Do not climb or touch the statue"}
+            }
+        ]
     }
 ]
-
