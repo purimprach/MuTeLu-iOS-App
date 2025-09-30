@@ -7,6 +7,7 @@ struct MainMenuView: View {
     // INPUTS
     @Binding var showBanner: Bool
     @EnvironmentObject var language: AppLanguage
+    @EnvironmentObject var checkInStore: CheckInStore         // ✅ ใช้คำนวณแต้มบุญ
     var currentMember: Member?
     var flowManager: MuTeLuFlowManager
     
@@ -34,7 +35,8 @@ struct MainMenuView: View {
                     if let first = nearest.first {
                         PlaceMiniCard(
                             title: language.localized(first.place.nameTH, first.place.nameEN),
-                            subtitle: language.localized("ห่าง \(formatDistance(first.distance))","\(formatDistance(first.distance, locale: Locale(identifier: "en_US"))) away"),
+                            subtitle: language.localized("ห่าง \(formatDistance(first.distance))",
+                                                         "\(formatDistance(first.distance, locale: Locale(identifier: "en_US"))) away"),
                             buttonTitle: language.localized("รายละเอียดสถานที่", "View details"),
                             buttonAction: { flowManager.currentScreen = .sacredDetail(place: first.place) }
                         )
@@ -77,20 +79,192 @@ struct MainMenuView: View {
         }
         .background(Color(.systemGroupedBackground))
     }
+    
+    // MARK: Header
     private var header: some View {
-        GreetingHeaderCard(
-            displayName: currentMember?.fullName,           // 
-            displayEmail: currentMember?.email,         
-            guestName: language.localized("ผู้ใช้รับเชิญ", "Guest user"),
-            subtitle: language.localized("ยินดีต้อนรับกลับ", "Welcome back")
+        GreetingHeaderCardPro(
+            name: currentMember?.fullName,
+            email: currentMember?.email,
+            subtitle: language.localized("ยินดีต้อนรับกลับ", "Welcome back"),
+            meritPoints: checkInStore.records(for: currentMember?.email ?? "").reduce(0) { $0 + $1.meritPoints },
+            onProfile: { /* TODO: ใส่จอโปรไฟล์จริงเมื่อพร้อม */ },
+            onScan:    { /* TODO: ใส่จอสแกนจริงเมื่อพร้อม */ },
+            onMap:     { flowManager.currentScreen = .recommendation }
         )
+        .environmentObject(language)
     }
+    
     // helper
     func formatDistance(_ meters: CLLocationDistance, locale: Locale = Locale(identifier: "th_TH")) -> String {
         let f = MKDistanceFormatter()
         f.unitStyle = .abbreviated
         f.locale = locale
         return f.string(fromDistance: meters)
+    }
+}
+
+// MARK: - Greeting Header (Pro)
+struct GreetingHeaderCardPro: View {
+    @EnvironmentObject var language: AppLanguage
+    
+    var name: String?
+    var email: String?
+    var subtitle: String
+    var meritPoints: Int = 0
+    
+    var onProfile: () -> Void
+    var onScan: () -> Void
+    var onMap: () -> Void
+    
+    private var displayName: String {
+        name?.isEmpty == false ? name! : language.localized("ผู้ใช้รับเชิญ", "Guest user")
+    }
+    private var initials: String {
+        (email ?? "guest@example.com").emailInitials
+    }
+    
+    var body: some View {
+        ZStack {
+            // gradient + soft blobs
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(
+                    LinearGradient(colors: [.purple.opacity(0.95), .indigo.opacity(0.9)],
+                                   startPoint: .topLeading, endPoint: .bottomTrailing)
+                )
+            Circle().fill(Color.white.opacity(0.12))
+                .frame(width: 160, height: 160)
+                .blur(radius: 20)
+                .offset(x: 140, y: -50)
+            Circle().fill(Color.black.opacity(0.12))
+                .frame(width: 120, height: 120)
+                .blur(radius: 18)
+                .offset(x: -140, y: 60)
+            
+            // content
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(alignment: .top, spacing: 12) {
+                    // Avatar with initials from email
+                    ZStack {
+                        Circle()
+                            .fill(LinearGradient(colors: [.pink, .orange],
+                                                 startPoint: .topLeading, endPoint: .bottomTrailing))
+                        Text(initials)
+                            .font(.headline.bold())
+                            .foregroundStyle(.white)
+                    }
+                    .frame(width: 56, height: 56)
+                    .overlay(Circle().stroke(.white.opacity(0.6), lineWidth: 2))
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(displayName)
+                            .font(.title3.weight(.bold))
+                            .foregroundStyle(.white)
+                        Text(subtitle)
+                            .font(.subheadline)
+                            .foregroundStyle(.white.opacity(0.8))
+                    }
+                    
+                    Spacer()
+                    
+                    // Notification / Profile button
+                    HStack(spacing: 8) {
+                        IconCapsule(system: "bell.fill")
+                        IconCapsule(system: "person.crop.circle.fill", action: onProfile)
+                    }
+                }
+                
+                // pills: points + email (ถ้ามี)
+                HStack(spacing: 8) {
+                    Pill(
+                        icon: "star.fill",
+                        text: language.localized("แต้มบุญ", "Merit") + " \(meritPoints)",
+                        bg: .orange
+                    )
+                    if let email, !email.isEmpty {
+                        Pill(icon: "envelope.fill", text: email, bg: .blue)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
+                }
+                
+                // quick actions
+                HStack(spacing: 10) {
+                    QuickButton(title: language.localized("สแกนเช็คอิน", "Scan Check-in"),
+                                system: "qrcode.viewfinder",
+                                color: .green,
+                                action: onScan)
+                    QuickButton(title: language.localized("แผนที่สถานที่", "Nearby Map"),
+                                system: "map.fill",
+                                color: .cyan,
+                                action: onMap)
+                }
+            }
+            .padding(16)
+        }
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(.white.opacity(0.08), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.12), radius: 10, y: 6)
+    }
+}
+
+// MARK: - Small building blocks
+private struct IconCapsule: View {
+    var system: String
+    var action: (() -> Void)? = nil
+    var body: some View {
+        Button(action: { action?() }) {
+            Image(systemName: system)
+                .symbolRenderingMode(.palette)
+                .foregroundStyle(.white, .white.opacity(0.55))
+                .padding(8)
+                .background(.white.opacity(0.12))
+                .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct Pill: View {
+    var icon: String
+    var text: String
+    var bg: Color
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .symbolRenderingMode(.palette)
+                .foregroundStyle(.white, .white.opacity(0.4))
+            Text(text).foregroundStyle(.white)
+                .font(.footnote.weight(.semibold))
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(bg.opacity(0.25))
+        .clipShape(Capsule())
+    }
+}
+
+private struct QuickButton: View {
+    var title: String
+    var system: String
+    var color: Color
+    var action: () -> Void
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: system)
+                    .symbolRenderingMode(.palette)
+                    .foregroundStyle(.white, .white.opacity(0.5))
+                Text(title).foregroundStyle(.white)
+                    .font(.subheadline.weight(.semibold))
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .background(color.opacity(0.28))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
+        .buttonStyle(.plain)
     }
 }
 
@@ -103,15 +277,9 @@ private struct BannerStack: View {
     var body: some View {
         VStack(spacing: 12) {
             if showBanner {
-                // ใช้ตัวใหม่ที่รองรับ Dark/Light
                 DailyBannerView(member: currentMember)
                     .environmentObject(language)
-               // BuddhistDayBanner()
-                //    .environmentObject(language)
-             //   ReligiousHolidayBanner()
-                //    .environmentObject(language)
-            //    RecommendedTempleBanner(currentMember: currentMember) 
-               //     .environmentObject(language)
+                // เพิ่ม/เปิดตัวอื่น ๆ ได้ภายหลัง
             }
         }
     }
@@ -123,12 +291,12 @@ private struct MiniSection<Content: View>: View {
     let icon: String
     let seeAllTitle: String
     let seeAllAction: () -> Void
-    @ViewBuilder var content: Content
+    @ViewBuilder let content: () -> Content   // ✅ ใส่ @ViewBuilder
     
     var body: some View {
         VStack(spacing: 8) {
             SectionHeader(title: title, icon: icon, actionTitle: seeAllTitle, action: seeAllAction)
-            content
+            content()  // ✅ เรียก closure
         }
     }
 }
@@ -176,7 +344,7 @@ private struct PlaceMiniCard: View {
 
 // MARK: - Quick actions grid (เก็บรวมท้ายหน้า)
 private struct QuickActionsGrid: View {
-    @EnvironmentObject var language: AppLanguage   // <-- เปลี่ยนตรงนี้
+    @EnvironmentObject var language: AppLanguage
     let flowManager: MuTeLuFlowManager
     @State private var showAll = false
     
@@ -214,7 +382,7 @@ private struct QuickActionsGrid: View {
                 ForEach(visible.indices, id: \.self) { i in
                     let it = visible[i]
                     MenuButton(titleTH: it.th, titleEN: it.en, image: it.icon, screen: it.screen)
-                        .environmentObject(language)          // เผื่อให้ปุ่มรีแอคภาษาด้วย
+                        .environmentObject(language)
                         .environmentObject(flowManager)
                 }
             }
@@ -236,11 +404,13 @@ struct Card<Content: View>: View {
             content
         }
         .padding()
-        .frame(maxWidth: .infinity)   // ✅ ทุกการ์ดกว้างเท่ากัน
+        .frame(maxWidth: .infinity)
         .background(Color(.secondarySystemBackground))
         .cornerRadius(16)
-        .overlay(RoundedRectangle(cornerRadius: 16)
-            .stroke(Color(.separator), lineWidth: 0.5))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color(.separator), lineWidth: 0.5)
+        )
         .shadow(color: .black.opacity(scheme == .dark ? 0.15 : 0.25),
                 radius: scheme == .dark ? 4 : 8, x: 0, y: 3)
     }

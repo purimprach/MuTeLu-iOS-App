@@ -2,18 +2,12 @@ import SwiftUI
 
 // MARK: - Shared Routers / Stores
 
-/// ตัวกลางเก็บตัวกรองสำหรับหน้า Check-ins (ใช้ร่วมกันทั้งแอป)
 final class CheckinFilterStore: ObservableObject {
     @Published var selectedUserEmail: String? = nil
     @Published var selectedPlaceID: String? = nil
-    
-    func clear() {
-        selectedUserEmail = nil
-        selectedPlaceID = nil
-    }
+    func clear() { selectedUserEmail = nil; selectedPlaceID = nil }
 }
 
-/// ตัวกลางไว้สลับแท็บของ AdminView จากที่ไหนก็ได้
 final class AdminTabRouter: ObservableObject {
     enum Tab { case members, checkIns }
     @Published var selected: Tab = .members
@@ -25,28 +19,25 @@ extension Color {
     static let surfaceOverlay = Color.primary.opacity(0.06)
 }
 
+// ⚠️ ให้มี extension นี้ “ที่เดียว” ในโปรเจกต์ ถ้ามีที่อื่นให้ลบทิ้ง
 extension String {
-    // ตัวอักษร 2 ตัวแรกจาก local-part ของอีเมล (ก่อน @)
+    /// อักษร 2 ตัวจาก local-part ของอีเมล
     var emailInitials: String {
         let local = self.split(separator: "@").first.map(String.init) ?? self
         let letters = local
             .replacingOccurrences(of: "_", with: " ")
             .replacingOccurrences(of: ".", with: " ")
             .split(separator: " ")
-        let first = letters.first?.first.map { String($0) } ?? (local.first.map { String($0) } ?? "")
+        let first  = letters.first?.first.map { String($0) } ?? (local.first.map { String($0) } ?? "")
         let second = letters.dropFirst().first?.first.map { String($0) } ?? (local.dropFirst().first.map { String($0) } ?? "")
         return (first + second).uppercased()
     }
 }
-
-extension Member {
-    var emailInitials: String { email.emailInitials }
-}
+extension Member { var emailInitials: String { email.emailInitials } }
 
 extension View {
     func cardContainer(gradient: LinearGradient? = nil) -> some View {
-        self
-            .padding(14)
+        self.padding(14)
             .background(
                 ZStack {
                     if let g = gradient { g }
@@ -63,7 +54,6 @@ extension View {
     }
 }
 
-// พาเลตต์สีสด (คงที่ต่อ email/place)
 struct AccentPalette {
     static let pairs: [(Color, Color)] = [
         (.pink, .orange), (.purple, .blue), (.mint, .teal), (.indigo, .purple),
@@ -75,12 +65,10 @@ struct AccentPalette {
     }
 }
 
-// MARK: - 1) AdminView
+// MARK: - AdminView
 
 struct AdminView: View {
     @EnvironmentObject var language: AppLanguage
-    
-    // ✅ เพิ่มตัวกลางทั้งสอง
     @StateObject private var tabRouter = AdminTabRouter()
     @StateObject private var filterStore = CheckinFilterStore()
     
@@ -92,34 +80,32 @@ struct AdminView: View {
             MemberManagementView()
                 .tabItem { Label(language.localized("สมาชิก", "Members"), systemImage: "person.3.fill") }
                 .tag(0)
-                .environmentObject(tabRouter)     // ✅ inject
-                .environmentObject(filterStore)   // ✅ inject
+                .environmentObject(tabRouter)
+                .environmentObject(filterStore)
             
             CheckinHistoryView()
                 .tabItem { Label(language.localized("ประวัติเช็คอิน", "Check-ins"), systemImage: "mappin.and.ellipse") }
                 .tag(1)
-                .environmentObject(tabRouter)     // ✅ inject (ไม่จำเป็นมาก แต่เผื่อใช้)
-                .environmentObject(filterStore)   // ✅ inject
+                .environmentObject(tabRouter)
+                .environmentObject(filterStore)
         }
     }
 }
 
-// MARK: - 2) MemberManagementView
+// MARK: - MemberManagementView
 
 struct MemberManagementView: View {
     @EnvironmentObject var memberStore: MemberStore
     @EnvironmentObject var language: AppLanguage
     @EnvironmentObject var flowManager: MuTeLuFlowManager
     @EnvironmentObject var checkInStore: CheckInStore
-    
-    @EnvironmentObject var tabRouter: AdminTabRouter      // ✅ ใช้สลับแท็บ
-    @EnvironmentObject var filterStore: CheckinFilterStore // ✅ ใช้ตั้งตัวกรอง
+    @EnvironmentObject var tabRouter: AdminTabRouter
+    @EnvironmentObject var filterStore: CheckinFilterStore
     
     @State private var editingMember: Member?
     @State private var memberToDelete: Member?
     @State private var showDeleteConfirm = false
     @State private var showingAddSheet = false
-    
     @State private var sortOption: SortOption = .nameAZ
     @State private var searchText = ""
     
@@ -127,16 +113,17 @@ struct MemberManagementView: View {
         case nameAZ, nameZA, meritHigh, recentLogin
         var id: String { rawValue }
     }
+    
     private func label(_ opt: SortOption) -> String {
         switch opt {
-        case .nameAZ: return language.localized("ชื่อ A→Z", "Name A→Z")
-        case .nameZA: return language.localized("ชื่อ Z→A", "Name Z→A")
-        case .meritHigh: return language.localized("แต้มบุญมาก→น้อย", "Merit High→Low")
-        case .recentLogin: return language.localized("เข้าระบบล่าสุด", "Recent Login")
+        case .nameAZ:     return language.localized("ชื่อ A→Z", "Name A→Z")
+        case .nameZA:     return language.localized("ชื่อ Z→A", "Name Z→A")
+        case .meritHigh:  return language.localized("แต้มบุญมาก→น้อย", "Merit High→Low")
+        case .recentLogin:return language.localized("เข้าระบบล่าสุด", "Recent Login")
         }
     }
-    private func meritPoints(for member: Member) -> Int {
-        checkInStore.records(for: member.email).reduce(0) { $0 + $1.meritPoints }
+    private func meritPoints(for m: Member) -> Int {
+        checkInStore.records(for: m.email).reduce(0) { $0 + $1.meritPoints }
     }
     private var filteredMembers: [Member] {
         var list = memberStore.members
@@ -149,11 +136,10 @@ struct MemberManagementView: View {
             }
         }
         switch sortOption {
-        case .nameAZ: list.sort { $0.fullName.localizedCompare($1.fullName) == .orderedAscending }
-        case .nameZA: list.sort { $0.fullName.localizedCompare($1.fullName) == .orderedDescending }
-        case .meritHigh: list.sort { meritPoints(for: $0) > meritPoints(for: $1) }
-        case .recentLogin:
-            list.sort { ($0.lastLogin ?? .distantPast) > ($1.lastLogin ?? .distantPast) }
+        case .nameAZ:     list.sort { $0.fullName.localizedCompare($1.fullName) == .orderedAscending }
+        case .nameZA:     list.sort { $0.fullName.localizedCompare($1.fullName) == .orderedDescending }
+        case .meritHigh:  list.sort { meritPoints(for: $0) > meritPoints(for: $1) }
+        case .recentLogin:list.sort { ($0.lastLogin ?? .distantPast) > ($1.lastLogin ?? .distantPast) }
         }
         return list
     }
@@ -163,25 +149,13 @@ struct MemberManagementView: View {
             ScrollView {
                 LazyVStack(spacing: 14) {
                     ForEach(filteredMembers, id: \.id) { member in
-                        MemberCard(
-                            member: member,
-                            language: language,
-                            onEdit: { editingMember = member },
-                            onDelete: { memberToDelete = member; showDeleteConfirm = true }
-                        )
+                        MemberCard(member: member,
+                                   language: language,
+                                   onEdit: { editingMember = member },
+                                   onDelete: { memberToDelete = member; showDeleteConfirm = true })
                         .environmentObject(checkInStore)
-                        .environmentObject(tabRouter)     // ✅ ให้การ์ดสลับแท็บได้
-                        .environmentObject(filterStore)    // ✅ ให้การ์ดตั้งตัวกรองได้
-                        .contextMenu {
-                            Button { editingMember = member } label: {
-                                Label(language.localized("แก้ไข", "Edit"), systemImage: "pencil")
-                            }
-                            Button(role: .destructive) {
-                                memberToDelete = member; showDeleteConfirm = true
-                            } label: {
-                                Label(language.localized("ลบ", "Delete"), systemImage: "trash")
-                            }
-                        }
+                        .environmentObject(tabRouter)
+                        .environmentObject(filterStore)
                     }
                 }
                 .padding(.horizontal)
@@ -191,18 +165,14 @@ struct MemberManagementView: View {
             .searchable(text: $searchText, prompt: Text(language.localized("ค้นหาชื่อ / อีเมล / โทรศัพท์", "Search name / email / phone")))
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        flowManager.currentScreen = .login
-                    } label: {
+                    Button { flowManager.currentScreen = .login } label: {
                         Label(language.localized("หน้าแรก", "Log in"), systemImage: "chevron.left")
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
                         Picker(selection: $sortOption) {
-                            ForEach(SortOption.allCases) { opt in
-                                Text(label(opt)).tag(opt)
-                            }
+                            ForEach(SortOption.allCases) { Text(label($0)).tag($0) }
                         } label: {
                             Label(language.localized("เรียงลำดับ", "Sort"), systemImage: "arrow.up.arrow.down")
                         }
@@ -210,9 +180,7 @@ struct MemberManagementView: View {
                         Button { showingAddSheet = true } label: {
                             Label(language.localized("เพิ่มสมาชิกใหม่", "Add Member"), systemImage: "person.badge.plus")
                         }
-                    } label: {
-                        Image(systemName: "ellipsis.circle").imageScale(.large)
-                    }
+                    } label: { Image(systemName: "ellipsis.circle").imageScale(.large) }
                 }
             }
             .sheet(item: $editingMember) { memberToEdit in
@@ -225,7 +193,8 @@ struct MemberManagementView: View {
             }
             .alert(language.localized("ยืนยันการลบ", "Confirm Deletion"), isPresented: $showDeleteConfirm) {
                 Button(language.localized("ลบ", "Delete"), role: .destructive) {
-                    if let m = memberToDelete, let i = memberStore.members.firstIndex(where: { $0.id == m.id }) {
+                    if let m = memberToDelete,
+                       let i = memberStore.members.firstIndex(where: { $0.id == m.id }) {
                         memberStore.members.remove(at: i)
                     }
                 }
@@ -243,7 +212,7 @@ struct MemberManagementView: View {
     }
 }
 
-// MARK: - 3) MemberCard (มีชิป Top 7 กดได้ → ตั้งกรอง + สลับแท็บ)
+// MARK: - MemberCard (Top 7 วัดเท่านั้น)
 
 struct MemberCard: View {
     let member: Member
@@ -252,33 +221,40 @@ struct MemberCard: View {
     var onDelete: () -> Void
     
     @EnvironmentObject var checkInStore: CheckInStore
-    @EnvironmentObject var tabRouter: AdminTabRouter        // ✅ ใช้สลับแท็บ
-    @EnvironmentObject var filterStore: CheckinFilterStore   // ✅ ใช้ตั้งตัวกรอง
+    @EnvironmentObject var tabRouter: AdminTabRouter
+    @EnvironmentObject var filterStore: CheckinFilterStore
     
     private var meritPoints: Int {
         checkInStore.records(for: member.email).reduce(0) { $0 + $1.meritPoints }
     }
-    
     private var latestCheckinText: String {
-        let records = checkInStore.records(for: member.email)
-        guard let latest = records.max(by: { $0.date < $1.date })?.date else {
+        let rs = checkInStore.records(for: member.email)
+        guard let d = rs.max(by: { $0.date < $1.date })?.date else {
             return language.localized("ยังไม่เคยเช็คอิน", "No check-ins yet")
         }
-        return formattedDateTime(latest)
+        return formattedDateTime(d)
     }
     
-    // คืนลิสต์ Top 7 (placeID, nameTH/EN, count) เพื่อทำชิปกดได้
+    /// คืน Top N วัดของ user นี้ (เร็วกว่าแสดงทั้งหมด)
     private func topCheckins(limit: Int = 7) -> [(placeID: String, name: String, count: Int)] {
         let records = checkInStore.records(for: member.email)
-        let langIsTH = language.currentLanguage == "th"
-        let groups = Dictionary(grouping: records, by: { $0.placeID })
+        guard !records.isEmpty else { return [] }
+        let isTH = (language.currentLanguage == "th")
+        
+        let grouped = Dictionary(grouping: records, by: { $0.placeID })
             .map { (pid: $0.key,
                     nameTH: $0.value.first?.placeNameTH ?? "-",
                     nameEN: $0.value.first?.placeNameEN ?? "-",
                     count: $0.value.count) }
-            .sorted { $0.count > $1.count }
+            .sorted { l, r in
+                if l.count != r.count { return l.count > r.count }           // มาก→น้อย
+                let ln = isTH ? l.nameTH : l.nameEN
+                let rn = isTH ? r.nameTH : r.nameEN
+                return ln.localizedCompare(rn) == .orderedAscending
+            }
             .prefix(limit)
-        return groups.map { (placeID: $0.pid, name: langIsTH ? $0.nameTH : $0.nameEN, count: $0.count) }
+        
+        return grouped.map { (placeID: $0.pid, name: isTH ? $0.nameTH : $0.nameEN, count: $0.count) }
     }
     
     private var gradient: LinearGradient {
@@ -291,32 +267,18 @@ struct MemberCard: View {
         VStack(alignment: .leading, spacing: 12) {
             // Header
             HStack(spacing: 12) {
-                // Avatar
                 ZStack {
                     let (c1, c2) = AccentPalette.pair(for: member.email)
-                    Circle()
-                        .fill(LinearGradient(colors: [c1, c2], startPoint: .topLeading, endPoint: .bottomTrailing))
+                    Circle().fill(LinearGradient(colors: [c1, c2], startPoint: .topLeading, endPoint: .bottomTrailing))
                         .frame(width: 54, height: 54)
                         .overlay(Circle().stroke(Color.white.opacity(0.6), lineWidth: 2))
                         .shadow(color: c2.opacity(0.35), radius: 8, y: 3)
-                    Text(member.emailInitials)
-                        .font(.headline.weight(.bold))
-                        .foregroundColor(.white)
+                    Text(member.emailInitials).font(.headline.weight(.bold)).foregroundColor(.white)
                 }
-                
                 VStack(alignment: .leading, spacing: 2) {
                     Text(member.fullName).font(.headline).lineLimit(1)
-                    HStack(spacing: 6) {
-                        Badge(text: member.role == .admin ? language.localized("ผู้ดูแล", "Admin")
-                              : language.localized("ผู้ใช้", "User"),
-                              color: member.role == .admin ? .purple : .blue)
-                        Badge(text: member.status == .active ? language.localized("ใช้งานอยู่", "Active")
-                              : language.localized("ระงับ", "Suspended"),
-                              color: member.status == .active ? .green : .orange)
-                    }
                 }
                 Spacer()
-                
                 HStack(spacing: 6) {
                     Image(systemName: "star.fill").foregroundColor(.orange)
                     Text("\(meritPoints)").font(.subheadline.bold()).foregroundStyle(.primary)
@@ -328,7 +290,7 @@ struct MemberCard: View {
             
             Divider().opacity(0.2)
             
-            // Body info
+            // Body
             VStack(alignment: .leading, spacing: 8) {
                 infoRow(icon: "envelope.fill", text: member.email, tint: .blue)
                 infoRow(icon: "phone.fill", text: member.phoneNumber, tint: .green)
@@ -343,6 +305,8 @@ struct MemberCard: View {
                     infoRow(icon: "house.fill", text: member.houseNumber, tint: .teal)
                     infoRow(icon: "car.fill", text: member.carPlate, tint: .orange)
                 }
+                
+                // Last login
                 if let lastLogin = member.lastLogin {
                     infoRow(icon: "clock.arrow.circlepath",
                             text: language.localized("เข้าระบบล่าสุด: \(formattedDateTime(lastLogin))",
@@ -354,22 +318,24 @@ struct MemberCard: View {
                             tint: .gray)
                 }
                 
-                if !member.tagScores.isEmpty {
-                    let sortedTags = member.tagScores.sorted { $0.value > $1.value }
-                    let tagString = sortedTags.map { "\($0.key): \($0.value)" }.joined(separator: "   ")
-                    infoRow(icon: "tag.fill",
-                            text: language.localized("ความสนใจ: \(tagString)", "Interests: \(tagString)"),
-                            tint: .purple)
-                    .fixedSize(horizontal: false, vertical: true)
-                }
+                // Interests (always show)
+                let interests: String = {
+                    if member.tagScores.isEmpty { return "-" }
+                    let sorted = member.tagScores.sorted { $0.value > $1.value }
+                    return sorted.map { "\($0.key): \($0.value)" }.joined(separator: "   ")
+                }()
+                infoRow(icon: "tag.fill",
+                        text: language.localized("ความสนใจ : \(interests)", "Interests : \(interests)"),
+                        tint: .red)
+                .fixedSize(horizontal: false, vertical: true)
                 
-                // ✅ เช็คอินล่าสุด
+                // Latest check-in
                 infoRow(icon: "clock.badge.checkmark",
                         text: language.localized("เช็คอินล่าสุด: \(latestCheckinText)",
                                                  "Latest check-in: \(latestCheckinText)"),
                         tint: .blue)
                 
-                // ✅ Top 7 วัด — แสดงเป็น “ชิปกดได้”
+                // ✅ Top 7 วัด (ชิปกดได้)
                 let top7 = topCheckins(limit: 7)
                 if !top7.isEmpty {
                     HStack(alignment: .top, spacing: 8) {
@@ -380,7 +346,6 @@ struct MemberCard: View {
                             HStack(spacing: 8) {
                                 ForEach(top7, id: \.placeID) { item in
                                     Button {
-                                        // ตั้งตัวกรอง + สลับแท็บไปหน้า Check-ins
                                         filterStore.selectedUserEmail = member.email
                                         filterStore.selectedPlaceID  = item.placeID
                                         tabRouter.selected = .checkIns
@@ -388,13 +353,17 @@ struct MemberCard: View {
                                         HStack(spacing: 6) {
                                             Text(item.name).lineLimit(1)
                                             Text("• \(item.count)")
-                                                .font(.caption2.weight(.semibold))
+                                                .font(.subheadline.weight(.semibold))
                                         }
                                         .padding(.horizontal, 10)
                                         .padding(.vertical, 6)
                                         .foregroundColor(.white)
-                                        .background(Capsule().fill(LinearGradient(
-                                            colors: [Color.red, Color.pink], startPoint: .topLeading, endPoint: .bottomTrailing)))
+                                        .background(
+                                            Capsule().fill(
+                                                LinearGradient(colors: [Color.red, Color.pink],
+                                                               startPoint: .topLeading, endPoint: .bottomTrailing)
+                                            )
+                                        )
                                     }
                                     .buttonStyle(.plain)
                                 }
@@ -407,20 +376,16 @@ struct MemberCard: View {
                             tint: .red)
                 }
             }
-            .font(.caption)
+            .font(.subheadline)
             .foregroundColor(.secondary)
             
             // Actions
             HStack {
                 Button { onEdit() } label: { Label(language.localized("แก้ไข", "Edit"), systemImage: "pencil") }
                     .buttonStyle(.bordered)
-                
                 Spacer()
-                
-                Button(role: .destructive) { onDelete() } label: {
-                    Label(language.localized("ลบ", "Delete"), systemImage: "trash")
-                }
-                .buttonStyle(.borderedProminent)
+                Button(role: .destructive) { onDelete() } label: { Label(language.localized("ลบ", "Delete"), systemImage: "trash") }
+                    .buttonStyle(.borderedProminent)
             }
             .padding(.top, 2)
         }
@@ -445,27 +410,13 @@ struct MemberCard: View {
     }
 }
 
-struct Badge: View {
-    let text: String
-    let color: Color
-    var body: some View {
-        Text(text)
-            .font(.caption2.bold())
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .foregroundStyle(.white)
-            .background(color.gradient)
-            .clipShape(Capsule())
-    }
-}
-
-// MARK: - 4) CheckinHistoryView (อ่านค่า filter จาก filterStore)
+// MARK: - CheckinHistoryView
 
 struct CheckinHistoryView: View {
     @EnvironmentObject var checkInStore: CheckInStore
     @EnvironmentObject var memberStore: MemberStore
     @EnvironmentObject var language: AppLanguage
-    @EnvironmentObject var filterStore: CheckinFilterStore   // ✅ ใช้ตัวกรองร่วม
+    @EnvironmentObject var filterStore: CheckinFilterStore
     
     @State private var searchText = ""
     @State private var sortNewestFirst = true
@@ -496,7 +447,6 @@ struct CheckinHistoryView: View {
     var body: some View {
         NavigationStack {
             List {
-                // Header แสดงสถานะตัวกรอง
                 if filterStore.selectedUserEmail != nil || filterStore.selectedPlaceID != nil {
                     Section {
                         HStack {
@@ -515,7 +465,7 @@ struct CheckinHistoryView: View {
                             }
                             .buttonStyle(.bordered)
                         }
-                        .font(.caption)
+                        .font(.subheadline)
                     }
                 }
                 
@@ -539,8 +489,7 @@ struct CheckinHistoryView: View {
                         if filterStore.selectedUserEmail != nil || filterStore.selectedPlaceID != nil || !searchText.isEmpty {
                             Divider()
                             Button(role: .destructive) {
-                                filterStore.clear()
-                                searchText = ""
+                                filterStore.clear(); searchText = ""
                             } label: {
                                 Label(language.localized("ล้างตัวกรองทั้งหมด", "Clear all filters"), systemImage: "xmark.circle")
                             }
@@ -557,7 +506,7 @@ struct CheckinHistoryView: View {
     
     private func groupedByDay(_ records: [CheckInRecord]) -> [(key: Date, value: [CheckInRecord])] {
         let cal = Calendar.current
-        let groups = Dictionary(grouping: records) { r in cal.startOfDay(for: r.date) }
+        let groups = Dictionary(grouping: records) { cal.startOfDay(for: $0.date) }
         return groups.keys.sorted(by: >).map { ($0, groups[$0]!.sorted { $0.date > $1.date }) }
     }
     private func dayHeader(_ date: Date) -> String {
@@ -568,7 +517,7 @@ struct CheckinHistoryView: View {
     }
 }
 
-// MARK: - 5) CheckInRow (เดิม)
+// MARK: - CheckInRow
 
 struct CheckInRow: View {
     let record: CheckInRecord
@@ -588,7 +537,7 @@ struct CheckInRow: View {
                     .font(.headline).foregroundColor(.primary)
                 Spacer()
                 Label("+\(record.meritPoints)", systemImage: "star.fill")
-                    .font(.caption.bold()).foregroundColor(.orange)
+                    .font(.subheadline.bold()).foregroundColor(.orange)
                     .padding(.horizontal, 8).padding(.vertical, 4)
                     .background(.thinMaterial).clipShape(Capsule())
             }
@@ -597,13 +546,13 @@ struct CheckInRow: View {
                     Label(memberName, systemImage: "person.fill")
                     Label(record.memberEmail, systemImage: "envelope.fill")
                 }
-                .font(.caption).foregroundColor(.secondary)
+                .font(.subheadline).foregroundColor(.secondary)
                 Spacer()
                 VStack(alignment: .trailing, spacing: 4) {
                     Text(record.date, style: .date)
                     Text(record.date, style: .time)
                 }
-                .font(.caption).foregroundColor(.secondary)
+                .font(.subheadline).foregroundColor(.secondary)
             }
         }
         .cardContainer(gradient: LinearGradient(colors: [c1.opacity(0.25), c2.opacity(0.25)],

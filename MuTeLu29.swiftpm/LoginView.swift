@@ -1,5 +1,5 @@
 import SwiftUI
-import CryptoKit // ✅ 1. เพิ่มบรรทัดนี้
+import CryptoKit
 
 struct LoginView: View {
     @EnvironmentObject var flowManager: MuTeLuFlowManager
@@ -18,16 +18,31 @@ struct LoginView: View {
     @State private var greetingName = ""
     @State private var randomGreetingMessage = ""
     
-    let greetings = [
-        "ขอให้วันนี้เต็มไปด้วยพลังบวกและความสำเร็จ",
-        "ขอให้คุณพบแต่สิ่งดี ๆ เข้ามาในชีวิต",
-        "วันนี้จะเป็นวันที่ยอดเยี่ยมสำหรับคุณ",
-        "ขอให้สมหวังในสิ่งที่ตั้งใจ",
-        "วันนี้คุณจะโชคดีเกินคาด!"
+    // MARK: Greetings (TH/EN)
+    let greetingsTH = [
+        "ขอให้วันนี้เต็มไปด้วยพลังบวก ความสุข และความสำเร็จในทุก ๆ ด้านของชีวิต",
+        "ขอให้คุณพบเจอแต่สิ่งดี ๆ ทั้งโอกาสใหม่ ๆ และผู้คนที่นำพาพลังงานดีเข้ามา",
+        "วันนี้จะเป็นวันที่ยอดเยี่ยม เต็มไปด้วยรอยยิ้มและความก้าวหน้า",
+        "ขอให้สิ่งที่คุณตั้งใจและทุ่มเทประสบผลสำเร็จสมความตั้งใจ",
+        "วันนี้คุณจะโชคดีเกินคาด สิ่งที่รอคอยอาจมาถึงเร็วกว่าที่คิด",
+        "ทุกย่างก้าวในวันนี้ขอให้เต็มไปด้วยแรงบันดาลใจและความสุข",
+        "เริ่มต้นวันใหม่ด้วยหัวใจที่เข้มแข็ง แล้วสิ่งดี ๆ จะเข้ามาหาคุณอย่างต่อเนื่อง"
     ]
+    let greetingsEN = [
+        "May your day be filled with positivity, happiness, and success in every aspect of life.",
+        "Wishing you wonderful opportunities and inspiring people who bring good energy into your world.",
+        "Today will be an amazing day, filled with smiles, growth, and achievements.",
+        "May everything you’ve worked hard for bring you the success you truly deserve.",
+        "Unexpected luck and pleasant surprises await you today—get ready for something wonderful.",
+        "May every step you take today be guided by inspiration, joy, and confidence.",
+        "Start this day with strength in your heart, and the universe will respond with endless blessings."
+    ]
+    // ✅ เลือกอาร์เรย์ตามภาษาปัจจุบัน
+    private var greetingsLocalized: [String] {
+        language.currentLanguage == "th" ? greetingsTH : greetingsEN
+    }
     
     var body: some View {
-        // ... ส่วน body ของคุณไม่ต้องแก้ไข ...
         ZStack {
             LinearGradient(
                 gradient: Gradient(colors: [Color.purple.opacity(0.7),
@@ -73,7 +88,9 @@ struct LoginView: View {
                         .foregroundColor(.gray)
                     TextField(language.localized("อีเมล", "Email"), text: $username)
                         .textFieldStyle(.plain)
-                        .autocapitalization(.none)
+                        .keyboardType(.emailAddress)                 // ✅ ใช้คีย์บอร์ดอีเมล
+                        .textInputAutocapitalization(.never)         // ✅ แทน .autocapitalization(.none)
+                        .autocorrectionDisabled(true)
                 }
                 .padding()
                 .background(Color.white)
@@ -105,17 +122,20 @@ struct LoginView: View {
                         .cornerRadius(10)
                 }
                 .padding(.horizontal)
+                .disabled(username.trimmingCharacters(in: .whitespaces).isEmpty ||
+                          password.trimmingCharacters(in: .whitespaces).isEmpty)  // ✅ กันกดตอนว่าง
                 
                 // Register Button
                 Button {
                     flowManager.currentScreen = .registration
-                    flowManager.isLoggedIn = true
+                    // (แนะนำ: อย่า set isLoggedIn = true ตรงนี้ ถ้ายังไม่ได้สมัครจริง)
                 } label: {
                     Text(language.localized("ยังไม่ได้เป็นสมาชิก กดที่นี่", "Not a member yet? Tap here."))
                         .font(.footnote)
                         .foregroundColor(.white)
                         .underline()
                 }
+                
                 Button(language.localized("< ระบบผู้ดูแล >", "< Admin > Login")) {
                     flowManager.currentScreen = .adminLogin
                 }
@@ -129,27 +149,23 @@ struct LoginView: View {
             // Greeting Popup
             if showGreetingPopup {
                 ZStack {
-                    Color.black.opacity(0.3)
-                        .ignoresSafeArea()
+                    Color.black.opacity(0.3).ignoresSafeArea()
                     
                     VStack(spacing: 16) {
-                        Text("🎉")
-                            .font(.system(size: 50))
+                        Text("🎉").font(.system(size: 50))
                         
                         Text(language.localized("สวัสดีครับคุณ\n\(greetingName)", "Hello, \(greetingName)"))
-                            .font(.title2)
-                            .fontWeight(.bold)
+                            .font(.title2).fontWeight(.bold)
                             .multilineTextAlignment(.center)
                         
-                        Text(language.localized(randomGreetingMessage, randomGreetingMessage))
+                        // ✅ ข้อความต้อนรับใช้จากอาร์เรย์ที่สุ่มแล้ว (ไม่ต้อง .localized ซ้ำ)
+                        Text(randomGreetingMessage)
                             .font(.body)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
                         
                         Button(action: {
-                            withAnimation {
-                                showGreetingPopup = false
-                            }
+                            withAnimation { showGreetingPopup = false }
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                                 flowManager.isLoggedIn = true
                                 flowManager.currentScreen = .home
@@ -159,23 +175,6 @@ struct LoginView: View {
                                 .frame(maxWidth: .infinity)
                                 .padding()
                                 .background(Color.purple)
-                                .foregroundColor(.white)
-                                .cornerRadius(12)
-                        }
-                        
-                        Button(action: {
-                            withAnimation {
-                                showGreetingPopup = false
-                            }
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                                flowManager.isLoggedIn = true
-                                flowManager.currentScreen = .tarot
-                            }
-                        }) {
-                            Text(language.localized("ไปดูดวงเลย 🔮", "Check Your Fortune 🔮"))
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color.orange)
                                 .foregroundColor(.white)
                                 .cornerRadius(12)
                         }
@@ -201,49 +200,44 @@ struct LoginView: View {
         }
     }
     
-    // ✅ 3. แก้ไขฟังก์ชัน handleLogin ทั้งหมด
-    // ใน struct LoginView:
+    // MARK: - Actions
     
     func handleLogin() {
         let trimmedEmail = username.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let trimmedPassword = password.trimmingCharacters(in: .whitespacesAndNewlines)
         
-        // ค้นหาสมาชิกด้วยอีเมล (ใช้ firstIndex เพื่อให้ได้ตำแหน่งใน array)
+        // ค้นหาอีเมล
         if let index = memberStore.members.firstIndex(where: { $0.email.lowercased() == trimmedEmail }) {
             let matched = memberStore.members[index]
             
-            // นำรหัสผ่านที่กรอกไป Hash แล้วเปรียบเทียบกับรหัสที่เก็บไว้
+            // เทียบรหัสผ่าน (เก็บเป็น hash)
             if matched.password == hashPassword(trimmedPassword) {
-                // --- Login สำเร็จ ---
-                
-                // 👇 อัปเดตเวลา login ล่าสุด
+                // ✅ อัปเดตเวลา login ล่าสุด
                 memberStore.members[index].lastLogin = Date()
                 
                 currentUserEmail = matched.email
                 loggedInEmail = matched.email
                 greetingName = matched.fullName
-                randomGreetingMessage = greetings.randomElement() ?? ""
                 
-                withAnimation {
-                    showGreetingPopup = true
-                }
+                // ✅ สุ่มข้อความต้อนรับตามภาษา
+                randomGreetingMessage = greetingsLocalized.randomElement() ?? ""
+                
+                withAnimation { showGreetingPopup = true }
             } else {
-                // --- รหัสผ่านผิด ---
                 errorMessage = language.localized("อีเมลหรือรหัสผ่านไม่ถูกต้อง", "Incorrect email or password")
                 showErrorAlert = true
             }
         } else {
-            // --- ไม่พบอีเมล ---
             errorMessage = language.localized("อีเมลหรือรหัสผ่านไม่ถูกต้อง", "Incorrect email or password")
             showErrorAlert = true
         }
     }
     
-    // ✅ 2. เพิ่มฟังก์ชัน hashPassword
+    // MARK: - Hash
+    
     private func hashPassword(_ password: String) -> String {
         let data = Data(password.utf8)
         let hashed = SHA256.hash(data: data)
         return hashed.compactMap { String(format: "%02x", $0) }.joined()
     }
 }
-
