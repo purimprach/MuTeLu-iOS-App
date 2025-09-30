@@ -1,92 +1,232 @@
 import SwiftUI
 
-// MARK: - 1. หน้าจอหลักของผู้ดูแล (Dashboard)
+// MARK: - Shared Routers / Stores
+
+/// ตัวกลางเก็บตัวกรองสำหรับหน้า Check-ins (ใช้ร่วมกันทั้งแอป)
+final class CheckinFilterStore: ObservableObject {
+    @Published var selectedUserEmail: String? = nil
+    @Published var selectedPlaceID: String? = nil
+    
+    func clear() {
+        selectedUserEmail = nil
+        selectedPlaceID = nil
+    }
+}
+
+/// ตัวกลางไว้สลับแท็บของ AdminView จากที่ไหนก็ได้
+final class AdminTabRouter: ObservableObject {
+    enum Tab { case members, checkIns }
+    @Published var selected: Tab = .members
+}
+
+// MARK: - Helpers & Extensions
+
+extension Color {
+    static let surfaceOverlay = Color.primary.opacity(0.06)
+}
+
+extension String {
+    // ตัวอักษร 2 ตัวแรกจาก local-part ของอีเมล (ก่อน @)
+    var emailInitials: String {
+        let local = self.split(separator: "@").first.map(String.init) ?? self
+        let letters = local
+            .replacingOccurrences(of: "_", with: " ")
+            .replacingOccurrences(of: ".", with: " ")
+            .split(separator: " ")
+        let first = letters.first?.first.map { String($0) } ?? (local.first.map { String($0) } ?? "")
+        let second = letters.dropFirst().first?.first.map { String($0) } ?? (local.dropFirst().first.map { String($0) } ?? "")
+        return (first + second).uppercased()
+    }
+}
+
+extension Member {
+    var emailInitials: String { email.emailInitials }
+}
+
+extension View {
+    func cardContainer(gradient: LinearGradient? = nil) -> some View {
+        self
+            .padding(14)
+            .background(
+                ZStack {
+                    if let g = gradient { g }
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                }
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
+            )
+            .shadow(color: .black.opacity(0.08), radius: 10, y: 4)
+    }
+}
+
+// พาเลตต์สีสด (คงที่ต่อ email/place)
+struct AccentPalette {
+    static let pairs: [(Color, Color)] = [
+        (.pink, .orange), (.purple, .blue), (.mint, .teal), (.indigo, .purple),
+        (.yellow, .orange), (.green, .teal), (.cyan, .blue), (.red, .pink)
+    ]
+    static func pair(for key: String) -> (Color, Color) {
+        let idx = abs(key.hashValue) % pairs.count
+        return pairs[idx]
+    }
+}
+
+// MARK: - 1) AdminView
+
 struct AdminView: View {
     @EnvironmentObject var language: AppLanguage
-    @State private var selectedTab: AdminTab = .members // เริ่มต้นที่แท็บสมาชิก
     
-    enum AdminTab {
-        case members
-        case checkIns
-    }
+    // ✅ เพิ่มตัวกลางทั้งสอง
+    @StateObject private var tabRouter = AdminTabRouter()
+    @StateObject private var filterStore = CheckinFilterStore()
     
     var body: some View {
-        TabView(selection: $selectedTab) {
-            // -- แท็บที่ 1: จัดการสมาชิก --
+        TabView(selection: Binding(
+            get: { tabRouter.selected == .members ? 0 : 1 },
+            set: { tabRouter.selected = ($0 == 0) ? .members : .checkIns }
+        )) {
             MemberManagementView()
-                .tabItem {
-                    Label(language.localized("สมาชิก", "Members"), systemImage: "person.3.fill")
-                }
-                .tag(AdminTab.members)
+                .tabItem { Label(language.localized("สมาชิก", "Members"), systemImage: "person.3.fill") }
+                .tag(0)
+                .environmentObject(tabRouter)     // ✅ inject
+                .environmentObject(filterStore)   // ✅ inject
             
-            // -- แท็บที่ 2: ประวัติการเช็คอิน --
             CheckinHistoryView()
-                .tabItem {
-                    Label(language.localized("ประวัติเช็คอิน", "Check-ins"), systemImage: "mappin.and.ellipse")
-                }
-                .tag(AdminTab.checkIns)
+                .tabItem { Label(language.localized("ประวัติเช็คอิน", "Check-ins"), systemImage: "mappin.and.ellipse") }
+                .tag(1)
+                .environmentObject(tabRouter)     // ✅ inject (ไม่จำเป็นมาก แต่เผื่อใช้)
+                .environmentObject(filterStore)   // ✅ inject
         }
     }
 }
 
-// MARK: - 2. หน้าจอสำหรับจัดการสมาชิก (ฉบับแก้ไข)
+// MARK: - 2) MemberManagementView
+
 struct MemberManagementView: View {
     @EnvironmentObject var memberStore: MemberStore
     @EnvironmentObject var language: AppLanguage
     @EnvironmentObject var flowManager: MuTeLuFlowManager
-    @EnvironmentObject var checkInStore: CheckInStore // ✅ เพิ่มเข้ามา
+    @EnvironmentObject var checkInStore: CheckInStore
+    
+    @EnvironmentObject var tabRouter: AdminTabRouter      // ✅ ใช้สลับแท็บ
+    @EnvironmentObject var filterStore: CheckinFilterStore // ✅ ใช้ตั้งตัวกรอง
     
     @State private var editingMember: Member?
-    @State private var showingEditSheet = false
     @State private var memberToDelete: Member?
     @State private var showDeleteConfirm = false
     @State private var showingAddSheet = false
     
+    @State private var sortOption: SortOption = .nameAZ
+    @State private var searchText = ""
+    
+    enum SortOption: String, CaseIterable, Identifiable {
+        case nameAZ, nameZA, meritHigh, recentLogin
+        var id: String { rawValue }
+    }
+    private func label(_ opt: SortOption) -> String {
+        switch opt {
+        case .nameAZ: return language.localized("ชื่อ A→Z", "Name A→Z")
+        case .nameZA: return language.localized("ชื่อ Z→A", "Name Z→A")
+        case .meritHigh: return language.localized("แต้มบุญมาก→น้อย", "Merit High→Low")
+        case .recentLogin: return language.localized("เข้าระบบล่าสุด", "Recent Login")
+        }
+    }
+    private func meritPoints(for member: Member) -> Int {
+        checkInStore.records(for: member.email).reduce(0) { $0 + $1.meritPoints }
+    }
+    private var filteredMembers: [Member] {
+        var list = memberStore.members
+        if !searchText.isEmpty {
+            let key = searchText.lowercased()
+            list = list.filter {
+                $0.fullName.lowercased().contains(key) ||
+                $0.email.lowercased().contains(key) ||
+                $0.phoneNumber.lowercased().contains(key)
+            }
+        }
+        switch sortOption {
+        case .nameAZ: list.sort { $0.fullName.localizedCompare($1.fullName) == .orderedAscending }
+        case .nameZA: list.sort { $0.fullName.localizedCompare($1.fullName) == .orderedDescending }
+        case .meritHigh: list.sort { meritPoints(for: $0) > meritPoints(for: $1) }
+        case .recentLogin:
+            list.sort { ($0.lastLogin ?? .distantPast) > ($1.lastLogin ?? .distantPast) }
+        }
+        return list
+    }
+    
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .center, spacing: 16) {
-                    ForEach(memberStore.members, id: \.id) { member in
-                        memberCard(for: member)
+                LazyVStack(spacing: 14) {
+                    ForEach(filteredMembers, id: \.id) { member in
+                        MemberCard(
+                            member: member,
+                            language: language,
+                            onEdit: { editingMember = member },
+                            onDelete: { memberToDelete = member; showDeleteConfirm = true }
+                        )
+                        .environmentObject(checkInStore)
+                        .environmentObject(tabRouter)     // ✅ ให้การ์ดสลับแท็บได้
+                        .environmentObject(filterStore)    // ✅ ให้การ์ดตั้งตัวกรองได้
+                        .contextMenu {
+                            Button { editingMember = member } label: {
+                                Label(language.localized("แก้ไข", "Edit"), systemImage: "pencil")
+                            }
+                            Button(role: .destructive) {
+                                memberToDelete = member; showDeleteConfirm = true
+                            } label: {
+                                Label(language.localized("ลบ", "Delete"), systemImage: "trash")
+                            }
+                        }
                     }
                 }
-                .padding()
+                .padding(.horizontal)
+                .padding(.vertical, 8)
             }
             .navigationTitle(language.localized("จัดการสมาชิก", "Member Management"))
+            .searchable(text: $searchText, prompt: Text(language.localized("ค้นหาชื่อ / อีเมล / โทรศัพท์", "Search name / email / phone")))
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
-                        // กลับไปหน้า Home ของแอป ไม่ใช่ Login
                         flowManager.currentScreen = .login
                     } label: {
-                        HStack {
-                            Image(systemName: "arrow.left")
-                            Text(language.localized("กลับ", "Back"))
-                        }
+                        Label(language.localized("หน้าแรก", "Log in"), systemImage: "chevron.left")
                     }
-                    .fontWeight(.semibold)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("➕ \(language.localized("เพิ่มสมาชิก", "Add Member"))") {
-                        showingAddSheet = true
+                    Menu {
+                        Picker(selection: $sortOption) {
+                            ForEach(SortOption.allCases) { opt in
+                                Text(label(opt)).tag(opt)
+                            }
+                        } label: {
+                            Label(language.localized("เรียงลำดับ", "Sort"), systemImage: "arrow.up.arrow.down")
+                        }
+                        Divider()
+                        Button { showingAddSheet = true } label: {
+                            Label(language.localized("เพิ่มสมาชิกใหม่", "Add Member"), systemImage: "person.badge.plus")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle").imageScale(.large)
                     }
-                    .fontWeight(.semibold)
                 }
             }
-            .sheet(isPresented: $showingEditSheet) {
-                if let memberToEdit = editingMember {
-                    EditMemberView(member: memberToEdit) { updated in
-                        if let index = memberStore.members.firstIndex(where: { $0.id == updated.id }) {
-                            memberStore.members[index] = updated
-                        }
-                        showingEditSheet = false
+            .sheet(item: $editingMember) { memberToEdit in
+                EditMemberView(member: memberToEdit) { updated in
+                    if let index = memberStore.members.firstIndex(where: { $0.id == updated.id }) {
+                        memberStore.members[index] = updated
                     }
+                    editingMember = nil
                 }
             }
             .alert(language.localized("ยืนยันการลบ", "Confirm Deletion"), isPresented: $showDeleteConfirm) {
                 Button(language.localized("ลบ", "Delete"), role: .destructive) {
-                    if let member = memberToDelete {
-                        delete(member)
+                    if let m = memberToDelete, let i = memberStore.members.firstIndex(where: { $0.id == m.id }) {
+                        memberStore.members.remove(at: i)
                     }
                 }
                 Button(language.localized("ยกเลิก", "Cancel"), role: .cancel) {}
@@ -101,120 +241,293 @@ struct MemberManagementView: View {
             }
         }
     }
+}
+
+// MARK: - 3) MemberCard (มีชิป Top 7 กดได้ → ตั้งกรอง + สลับแท็บ)
+
+struct MemberCard: View {
+    let member: Member
+    let language: AppLanguage
+    var onEdit: () -> Void
+    var onDelete: () -> Void
     
-    // ✅ เพิ่มฟังก์ชันคำนวณแต้มบุญ
-    private func calculateMeritPoints(for member: Member) -> Int {
-        return checkInStore.records(for: member.email)
-            .reduce(0) { $0 + $1.meritPoints }
+    @EnvironmentObject var checkInStore: CheckInStore
+    @EnvironmentObject var tabRouter: AdminTabRouter        // ✅ ใช้สลับแท็บ
+    @EnvironmentObject var filterStore: CheckinFilterStore   // ✅ ใช้ตั้งตัวกรอง
+    
+    private var meritPoints: Int {
+        checkInStore.records(for: member.email).reduce(0) { $0 + $1.meritPoints }
     }
     
-    @ViewBuilder
-    func memberCard(for member: Member) -> some View {
+    private var latestCheckinText: String {
+        let records = checkInStore.records(for: member.email)
+        guard let latest = records.max(by: { $0.date < $1.date })?.date else {
+            return language.localized("ยังไม่เคยเช็คอิน", "No check-ins yet")
+        }
+        return formattedDateTime(latest)
+    }
+    
+    // คืนลิสต์ Top 7 (placeID, nameTH/EN, count) เพื่อทำชิปกดได้
+    private func topCheckins(limit: Int = 7) -> [(placeID: String, name: String, count: Int)] {
+        let records = checkInStore.records(for: member.email)
+        let langIsTH = language.currentLanguage == "th"
+        let groups = Dictionary(grouping: records, by: { $0.placeID })
+            .map { (pid: $0.key,
+                    nameTH: $0.value.first?.placeNameTH ?? "-",
+                    nameEN: $0.value.first?.placeNameEN ?? "-",
+                    count: $0.value.count) }
+            .sorted { $0.count > $1.count }
+            .prefix(limit)
+        return groups.map { (placeID: $0.pid, name: langIsTH ? $0.nameTH : $0.nameEN, count: $0.count) }
+    }
+    
+    private var gradient: LinearGradient {
+        let (c1, c2) = AccentPalette.pair(for: member.email)
+        return LinearGradient(colors: [c1.opacity(0.38), c2.opacity(0.38)],
+                              startPoint: .topLeading, endPoint: .bottomTrailing)
+    }
+    
+    var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("👤 \(member.fullName)")
-                .font(.headline)
-                .fontWeight(.bold)
-            Divider()
-            VStack(alignment: .leading, spacing: 8) {
-                Label(member.email, systemImage: "envelope.fill")
-                Label(member.phoneNumber, systemImage: "phone.fill")
-            }
-            .font(.subheadline)
-            VStack(alignment: .leading, spacing: 8) {
-                Label("เกิดวันที่: \(formattedDate(member.birthdate)), เวลา \(member.birthTime)", systemImage: "calendar")
-                Label("เพศ: \(member.gender)", systemImage: "person.circle")
-                Label("บ้านเลขที่: \(member.houseNumber)", systemImage: "house.fill")
-                Label("ทะเบียนรถ: \(member.carPlate)", systemImage: "car.fill")
+            // Header
+            HStack(spacing: 12) {
+                // Avatar
+                ZStack {
+                    let (c1, c2) = AccentPalette.pair(for: member.email)
+                    Circle()
+                        .fill(LinearGradient(colors: [c1, c2], startPoint: .topLeading, endPoint: .bottomTrailing))
+                        .frame(width: 54, height: 54)
+                        .overlay(Circle().stroke(Color.white.opacity(0.6), lineWidth: 2))
+                        .shadow(color: c2.opacity(0.35), radius: 8, y: 3)
+                    Text(member.emailInitials)
+                        .font(.headline.weight(.bold))
+                        .foregroundColor(.white)
+                }
                 
-                // ✅ แก้ไขให้เรียกใช้ฟังก์ชันคำนวณแต้ม
-                Label("แต้มบุญ: \(calculateMeritPoints(for: member))", systemImage: "star.fill")
-                    .foregroundColor(.orange)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(member.fullName).font(.headline).lineLimit(1)
+                    HStack(spacing: 6) {
+                        Badge(text: member.role == .admin ? language.localized("ผู้ดูแล", "Admin")
+                              : language.localized("ผู้ใช้", "User"),
+                              color: member.role == .admin ? .purple : .blue)
+                        Badge(text: member.status == .active ? language.localized("ใช้งานอยู่", "Active")
+                              : language.localized("ระงับ", "Suspended"),
+                              color: member.status == .active ? .green : .orange)
+                    }
+                }
+                Spacer()
+                
+                HStack(spacing: 6) {
+                    Image(systemName: "star.fill").foregroundColor(.orange)
+                    Text("\(meritPoints)").font(.subheadline.bold()).foregroundStyle(.primary)
+                }
+                .padding(.horizontal, 10).padding(.vertical, 6)
+                .background(.thinMaterial)
+                .clipShape(Capsule())
+            }
+            
+            Divider().opacity(0.2)
+            
+            // Body info
+            VStack(alignment: .leading, spacing: 8) {
+                infoRow(icon: "envelope.fill", text: member.email, tint: .blue)
+                infoRow(icon: "phone.fill", text: member.phoneNumber, tint: .green)
+                infoRow(icon: "calendar",
+                        text: language.localized("เกิดวันที่: \(formattedDate(member.birthdate)), เวลา \(member.birthTime)",
+                                                 "Birth: \(formattedDate(member.birthdate)), \(member.birthTime)"),
+                        tint: .indigo)
+                infoRow(icon: "person.circle",
+                        text: language.localized("เพศ: \(member.gender)", "Gender: \(member.gender)"),
+                        tint: .purple)
+                HStack(spacing: 12) {
+                    infoRow(icon: "house.fill", text: member.houseNumber, tint: .teal)
+                    infoRow(icon: "car.fill", text: member.carPlate, tint: .orange)
+                }
+                if let lastLogin = member.lastLogin {
+                    infoRow(icon: "clock.arrow.circlepath",
+                            text: language.localized("เข้าระบบล่าสุด: \(formattedDateTime(lastLogin))",
+                                                     "Last login: \(formattedDateTime(lastLogin))"),
+                            tint: .pink)
+                } else {
+                    infoRow(icon: "clock.arrow.circlepath",
+                            text: language.localized("ยังไม่เคยเข้าระบบ", "Never logged in"),
+                            tint: .gray)
+                }
+                
+                if !member.tagScores.isEmpty {
+                    let sortedTags = member.tagScores.sorted { $0.value > $1.value }
+                    let tagString = sortedTags.map { "\($0.key): \($0.value)" }.joined(separator: "   ")
+                    infoRow(icon: "tag.fill",
+                            text: language.localized("ความสนใจ: \(tagString)", "Interests: \(tagString)"),
+                            tint: .purple)
+                    .fixedSize(horizontal: false, vertical: true)
+                }
+                
+                // ✅ เช็คอินล่าสุด
+                infoRow(icon: "clock.badge.checkmark",
+                        text: language.localized("เช็คอินล่าสุด: \(latestCheckinText)",
+                                                 "Latest check-in: \(latestCheckinText)"),
+                        tint: .blue)
+                
+                // ✅ Top 7 วัด — แสดงเป็น “ชิปกดได้”
+                let top7 = topCheckins(limit: 7)
+                if !top7.isEmpty {
+                    HStack(alignment: .top, spacing: 8) {
+                        Image(systemName: "building.columns.circle.fill")
+                            .foregroundColor(.red)
+                            .frame(width: 16)
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(top7, id: \.placeID) { item in
+                                    Button {
+                                        // ตั้งตัวกรอง + สลับแท็บไปหน้า Check-ins
+                                        filterStore.selectedUserEmail = member.email
+                                        filterStore.selectedPlaceID  = item.placeID
+                                        tabRouter.selected = .checkIns
+                                    } label: {
+                                        HStack(spacing: 6) {
+                                            Text(item.name).lineLimit(1)
+                                            Text("• \(item.count)")
+                                                .font(.caption2.weight(.semibold))
+                                        }
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 6)
+                                        .foregroundColor(.white)
+                                        .background(Capsule().fill(LinearGradient(
+                                            colors: [Color.red, Color.pink], startPoint: .topLeading, endPoint: .bottomTrailing)))
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    infoRow(icon: "building.columns.circle.fill",
+                            text: language.localized("วัดที่เคยเช็คอิน: ยังไม่เคยเช็คอิน", "Visited shrines: No check-ins yet"),
+                            tint: .red)
+                }
             }
             .font(.caption)
             .foregroundColor(.secondary)
-            .padding(.top, 4)
+            
+            // Actions
             HStack {
-                Button("✏️ \(language.localized("แก้ไข", "Edit"))") {
-                    editingMember = member
-                    showingEditSheet = true
-                }
-                .buttonStyle(.bordered)
-                .tint(.purple)
+                Button { onEdit() } label: { Label(language.localized("แก้ไข", "Edit"), systemImage: "pencil") }
+                    .buttonStyle(.bordered)
+                
                 Spacer()
-                Button("🗑️ \(language.localized("ลบ", "Delete"))") {
-                    memberToDelete = member
-                    showDeleteConfirm = true
+                
+                Button(role: .destructive) { onDelete() } label: {
+                    Label(language.localized("ลบ", "Delete"), systemImage: "trash")
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(.red)
             }
-            .padding(.top, 8)
+            .padding(.top, 2)
         }
-        .padding()
-        .background(Material.regular)
-        .cornerRadius(15)
-        .shadow(color: .black.opacity(0.1), radius: 5, y: 2)
+        .cardContainer(gradient: gradient)
     }
     
-    func delete(_ member: Member) {
-        if let index = memberStore.members.firstIndex(where: { $0.id == member.id }) {
-            memberStore.members.remove(at: index)
+    private func infoRow(icon: String, text: String, tint: Color) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon).imageScale(.small).foregroundColor(tint).frame(width: 16)
+            Text(text).foregroundColor(.secondary)
         }
     }
-    
-    func formattedDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .long
-        formatter.timeStyle = .none
-        formatter.locale = Locale(identifier: language.currentLanguage == "th" ? "th_TH" : "en_US")
-        return formatter.string(from: date)
+    private func formattedDate(_ date: Date) -> String {
+        let f = DateFormatter(); f.dateStyle = .long; f.timeStyle = .none
+        f.locale = Locale(identifier: language.currentLanguage == "th" ? "th_TH" : "en_US")
+        return f.string(from: date)
+    }
+    private func formattedDateTime(_ date: Date) -> String {
+        let f = DateFormatter(); f.dateStyle = .medium; f.timeStyle = .short
+        f.locale = Locale(identifier: language.currentLanguage == "th" ? "th_TH" : "en_US")
+        return f.string(from: date)
     }
 }
 
-// MARK: - 3. หน้าจอประวัติเช็คอินทั้งหมด
+struct Badge: View {
+    let text: String
+    let color: Color
+    var body: some View {
+        Text(text)
+            .font(.caption2.bold())
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .foregroundStyle(.white)
+            .background(color.gradient)
+            .clipShape(Capsule())
+    }
+}
+
+// MARK: - 4) CheckinHistoryView (อ่านค่า filter จาก filterStore)
+
 struct CheckinHistoryView: View {
     @EnvironmentObject var checkInStore: CheckInStore
     @EnvironmentObject var memberStore: MemberStore
     @EnvironmentObject var language: AppLanguage
+    @EnvironmentObject var filterStore: CheckinFilterStore   // ✅ ใช้ตัวกรองร่วม
     
     @State private var searchText = ""
-    @State private var selectedUserEmail: String? = nil
-    @State private var selectedPlaceID: String? = nil
+    @State private var sortNewestFirst = true
     
     private var filteredRecords: [CheckInRecord] {
-        var records = checkInStore.records.sorted { $0.date > $1.date }
-        
-        if let email = selectedUserEmail {
-            records = records.filter { $0.memberEmail == email }
+        var records = checkInStore.records
+        if let email = filterStore.selectedUserEmail {
+            records = records.filter { $0.memberEmail.caseInsensitiveCompare(email) == .orderedSame }
         }
-        
-        if let placeID = selectedPlaceID {
+        if let placeID = filterStore.selectedPlaceID {
             records = records.filter { $0.placeID == placeID }
         }
-        
         if !searchText.isEmpty {
-            let searchOptions: String.CompareOptions = [.caseInsensitive, .diacriticInsensitive]
-            
-            records = records.filter { record in
-                if record.placeNameTH.range(of: searchText, options: searchOptions) != nil { return true }
-                if record.placeNameEN.range(of: searchText, options: searchOptions) != nil { return true }
-                if record.memberEmail.range(of: searchText, options: searchOptions) != nil { return true }
-                
-                if let member = findMember(by: record.memberEmail) {
-                    if member.fullName.range(of: searchText, options: searchOptions) != nil {
-                        return true
-                    }
-                }
+            let opt: String.CompareOptions = [.caseInsensitive, .diacriticInsensitive]
+            records = records.filter { r in
+                if r.placeNameTH.range(of: searchText, options: opt) != nil { return true }
+                if r.placeNameEN.range(of: searchText, options: opt) != nil { return true }
+                if r.memberEmail.range(of: searchText, options: opt) != nil { return true }
+                if let m = memberStore.members.first(where: { $0.email.caseInsensitiveCompare(r.memberEmail) == .orderedSame }),
+                   m.fullName.range(of: searchText, options: opt) != nil { return true }
                 return false
             }
         }
+        records.sort { sortNewestFirst ? ($0.date > $1.date) : ($0.date < $1.date) }
         return records
     }
     
     var body: some View {
         NavigationStack {
-            List(filteredRecords) { record in
-                CheckInRow(record: record)
+            List {
+                // Header แสดงสถานะตัวกรอง
+                if filterStore.selectedUserEmail != nil || filterStore.selectedPlaceID != nil {
+                    Section {
+                        HStack {
+                            if let email = filterStore.selectedUserEmail {
+                                Label(email, systemImage: "person.crop.circle.fill")
+                            }
+                            if let pid = filterStore.selectedPlaceID,
+                               let sample = checkInStore.records.first(where: { $0.placeID == pid }) {
+                                Label(sample.placeNameTH, systemImage: "building.columns.fill")
+                            }
+                            Spacer()
+                            Button(role: .destructive) {
+                                filterStore.clear()
+                            } label: {
+                                Label(language.localized("ล้างตัวกรอง", "Clear filters"), systemImage: "xmark.circle")
+                            }
+                            .buttonStyle(.bordered)
+                        }
+                        .font(.caption)
+                    }
+                }
+                
+                ForEach(groupedByDay(filteredRecords), id: \.key) { day, items in
+                    Section(header: Text(dayHeader(day))) {
+                        ForEach(items) { record in
+                            CheckInRow(record: record)
+                                .listRowSeparator(.hidden)
+                                .listRowInsets(EdgeInsets(top: 8, leading: 14, bottom: 8, trailing: 14))
+                        }
+                    }
+                }
             }
             .listStyle(.insetGrouped)
             .navigationTitle(language.localized("ประวัติเช็คอินทั้งหมด", "All Check-in History"))
@@ -222,51 +535,41 @@ struct CheckinHistoryView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
-                        Section {
-                            Picker("กรองตามสมาชิก", selection: $selectedUserEmail) {
-                                Text("สมาชิกทั้งหมด").tag(String?.none)
-                                ForEach(memberStore.members) { member in
-                                    Text(member.fullName).tag(String?(member.email))
-                                }
-                            }
-                            
-                            Picker("กรองตามสถานที่", selection: $selectedPlaceID) {
-                                Text("สถานที่ทั้งหมด").tag(String?.none)
-                                let uniquePlaces = Dictionary(grouping: checkInStore.records, by: { $0.placeID })
-                                    .compactMap { $0.value.first }
-                                    .sorted { $0.placeNameTH < $1.placeNameTH }
-                                
-                                ForEach(uniquePlaces, id: \.placeID) { record in
-                                    Text(record.placeNameTH).tag(String?(record.placeID))
-                                }
-                            }
-                        }
-                        
-                        if selectedUserEmail != nil || selectedPlaceID != nil {
-                            Section {
-                                Button(role: .destructive) {
-                                    selectedUserEmail = nil
-                                    selectedPlaceID = nil
-                                } label: {
-                                    Label("ล้างการกรอง", systemImage: "xmark.circle")
-                                }
+                        Toggle(language.localized("ใหม่สุดอยู่บน", "Newest first"), isOn: $sortNewestFirst)
+                        if filterStore.selectedUserEmail != nil || filterStore.selectedPlaceID != nil || !searchText.isEmpty {
+                            Divider()
+                            Button(role: .destructive) {
+                                filterStore.clear()
+                                searchText = ""
+                            } label: {
+                                Label(language.localized("ล้างตัวกรองทั้งหมด", "Clear all filters"), systemImage: "xmark.circle")
                             }
                         }
                     } label: {
-                        Image(systemName: (selectedUserEmail != nil || selectedPlaceID != nil) ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
-                            .imageScale(.large)
+                        Image(systemName: "line.3.horizontal.decrease.circle" +
+                              ((filterStore.selectedUserEmail != nil || filterStore.selectedPlaceID != nil || !searchText.isEmpty) ? ".fill" : ""))
+                        .imageScale(.large)
                     }
                 }
             }
         }
     }
     
-    private func findMember(by email: String) -> Member? {
-        return memberStore.members.first { $0.email.caseInsensitiveCompare(email) == .orderedSame }
+    private func groupedByDay(_ records: [CheckInRecord]) -> [(key: Date, value: [CheckInRecord])] {
+        let cal = Calendar.current
+        let groups = Dictionary(grouping: records) { r in cal.startOfDay(for: r.date) }
+        return groups.keys.sorted(by: >).map { ($0, groups[$0]!.sorted { $0.date > $1.date }) }
+    }
+    private func dayHeader(_ date: Date) -> String {
+        let f = DateFormatter()
+        f.dateStyle = .full; f.timeStyle = .none
+        f.locale = Locale(identifier: language.currentLanguage == "th" ? "th_TH" : "en_US")
+        return f.string(from: date)
     }
 }
 
-// MARK: - 4. UI สำหรับแสดงผลแต่ละแถว
+// MARK: - 5) CheckInRow (เดิม)
+
 struct CheckInRow: View {
     let record: CheckInRecord
     @EnvironmentObject var memberStore: MemberStore
@@ -277,36 +580,33 @@ struct CheckInRow: View {
     }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(language.localized(record.placeNameTH, record.placeNameEN))
-                .font(.headline)
-                .foregroundColor(.purple) // ✅ แก้ไขสี
-            
-            Divider()
-            
+        let (c1, c2) = AccentPalette.pair(for: record.placeID)
+        VStack(alignment: .leading, spacing: 10) {
             HStack {
-                VStack(alignment: .leading, spacing: 4) {
+                Image(systemName: "mappin.circle.fill").foregroundColor(c1)
+                Text(language.localized(record.placeNameTH, record.placeNameEN))
+                    .font(.headline).foregroundColor(.primary)
+                Spacer()
+                Label("+\(record.meritPoints)", systemImage: "star.fill")
+                    .font(.caption.bold()).foregroundColor(.orange)
+                    .padding(.horizontal, 8).padding(.vertical, 4)
+                    .background(.thinMaterial).clipShape(Capsule())
+            }
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 6) {
                     Label(memberName, systemImage: "person.fill")
                     Label(record.memberEmail, systemImage: "envelope.fill")
                 }
-                .font(.caption)
-                .foregroundColor(.secondary) // ✅ แก้ไขสี
-                
+                .font(.caption).foregroundColor(.secondary)
                 Spacer()
-                
                 VStack(alignment: .trailing, spacing: 4) {
                     Text(record.date, style: .date)
                     Text(record.date, style: .time)
                 }
-                .font(.caption)
-                .foregroundColor(.gray)
+                .font(.caption).foregroundColor(.secondary)
             }
-            
-            Text("+\(record.meritPoints) แต้มบุญ")
-                .font(.footnote.bold())
-                .foregroundColor(.green)
-                .padding(.top, 4)
         }
-        .padding(.vertical, 8)
+        .cardContainer(gradient: LinearGradient(colors: [c1.opacity(0.25), c2.opacity(0.25)],
+                                                startPoint: .topLeading, endPoint: .bottomTrailing))
     }
 }
