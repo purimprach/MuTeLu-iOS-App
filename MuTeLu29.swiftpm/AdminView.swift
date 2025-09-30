@@ -57,7 +57,7 @@ struct MemberManagementView: View {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
                         // กลับไปหน้า Home ของแอป ไม่ใช่ Login
-                        flowManager.currentScreen = .home
+                        flowManager.currentScreen = .login
                     } label: {
                         HStack {
                             Image(systemName: "arrow.left")
