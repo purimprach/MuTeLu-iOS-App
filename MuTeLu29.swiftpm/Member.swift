@@ -33,6 +33,7 @@ struct Member: Identifiable, Codable {
     
     // ✅ คะแนน tag ของผู้ใช้ (คงไว้ตามของเดิม)
     var tagScores: [String: Int] = [:]
+    var likedPlaceIDs: Set<UUID> = []
     
     var role: UserRole
     var status: AccountStatus

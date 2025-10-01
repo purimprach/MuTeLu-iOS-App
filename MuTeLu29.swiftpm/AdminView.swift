@@ -107,6 +107,7 @@ struct MemberManagementView: View {
     @State private var showingAddSheet = false
     @State private var sortOption: SortOption = .nameAZ
     @State private var searchText = ""
+    @State private var showLogoutConfirm = false // 👈 **เพิ่ม State สำหรับ Alert**
     
     enum SortOption: String, CaseIterable, Identifiable {
         case nameAZ, nameZA, meritHigh, recentLogin
@@ -163,11 +164,16 @@ struct MemberManagementView: View {
             .navigationTitle(language.localized("จัดการสมาชิก", "Member Management"))
             .searchable(text: $searchText, prompt: Text(language.localized("ค้นหาชื่อ / อีเมล / โทรศัพท์", "Search name / email / phone")))
             .toolbar {
+                // 👇 --- **ส่วนที่แก้ไข** ---
                 ToolbarItem(placement: .topBarLeading) {
-                    Button { flowManager.currentScreen = .login } label: {
-                        Label(language.localized("หน้าแรก", "Log in"), systemImage: "chevron.left")
+                    Button(role: .destructive) {
+                        showLogoutConfirm = true // แสดง Alert ยืนยัน
+                    } label: {
+                        Label(language.localized("ออกจากระบบ", "Logout"), systemImage: "rectangle.portrait.and.arrow.right")
                     }
                 }
+                // -------------------------
+                
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
                         Picker(selection: $sortOption) {
@@ -206,6 +212,16 @@ struct MemberManagementView: View {
                     memberStore.members.append(newMember)
                     showingAddSheet = false
                 }
+            }
+            // 👇 **เพิ่ม Alert สำหรับยืนยันการ Logout**
+            .alert(language.localized("ยืนยันการออกจากระบบ", "Confirm Logout"), isPresented: $showLogoutConfirm) {
+                Button(language.localized("ออกจากระบบ", "Logout"), role: .destructive) {
+                    flowManager.isLoggedIn = false
+                    flowManager.currentScreen = .login
+                }
+                Button(language.localized("ยกเลิก", "Cancel"), role: .cancel) {}
+            } message: {
+                Text(language.localized("คุณต้องการออกจากระบบผู้ดูแลหรือไม่?", "Are you sure you want to log out from the admin system?"))
             }
         }
     }

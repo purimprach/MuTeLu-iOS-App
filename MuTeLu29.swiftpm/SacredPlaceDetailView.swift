@@ -16,6 +16,8 @@ struct SacredPlaceDetailView: View {
     @State private var countdownTimer: Timer?
     @State private var timeRemaining: TimeInterval = 0
     
+    @State private var isLiked: Bool = false
+    
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
@@ -33,15 +35,44 @@ struct SacredPlaceDetailView: View {
                     .padding(.leading)
                     .bold()
                 }
-                Spacer()
-                // ✅ ชื่อสถานที่
-                Text(language.localized(place.nameTH, place.nameEN))
-                    .font(.title2)
-                    .fontWeight(.bold)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: .infinity)
                 
-                // ✅ กล่อง description
+                // 👇 --- ส่วน UI ที่ปรับปรุงใหม่ ---
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(alignment: .top) {
+                        // ชื่อสถานที่ (ชิดซ้าย)
+                        Text(language.localized(place.nameTH, place.nameEN))
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .multilineTextAlignment(.leading)
+                        
+                        Spacer()
+                        
+                        // ปุ่มไลค์ (ขยายขนาดและเพิ่ม Animation)
+                        Button(action: {
+                            memberStore.toggleLike(for: loggedInEmail, place: place)
+                            withAnimation(.spring(response: 0.4, dampingFraction: 0.5)) {
+                                isLiked.toggle()
+                            }
+                        }) {
+                            Image(systemName: isLiked ? "heart.fill" : "heart")
+                                .font(.title) // ขยายขนาดไอคอน
+                                .foregroundColor(isLiked ? .red : .gray)
+                                .scaleEffect(isLiked ? 1.1 : 1.0)
+                        }
+                    }
+                    
+                    // ที่ตั้ง (ย้ายขึ้นมาไว้ในการ์ดเดียวกัน)
+                    Label(language.currentLanguage == "th" ? place.locationTH : place.locationEN, systemImage: "mappin.and.ellipse")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                .padding()
+                .background(.thinMaterial) // ใช้พื้นหลังแบบโปร่งแสง
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .padding(.horizontal)
+                // ------------------------------------
+                
+                // ✅ กล่อง description (เหมือนเดิม)
                 ExpandableTextView(
                     fullText: language.localized(place.descriptionTH, place.descriptionEN),
                     lineLimit: 5
@@ -79,10 +110,6 @@ struct SacredPlaceDetailView: View {
                 
                 // ✅ แผนที่
                 VStack(alignment: .leading, spacing: 15) {
-                    Text("📍 \(language.currentLanguage == "th" ? place.locationTH : place.locationEN)")
-                        .font(.subheadline)
-                        .padding(.horizontal)
-                    
                     MapSnapshotView(
                         latitude: place.latitude,
                         longitude: place.longitude,
@@ -91,7 +118,7 @@ struct SacredPlaceDetailView: View {
                     .frame(height: 180)
                     .cornerRadius(12)
                     .padding(.horizontal)
-                    Spacer()
+                    
                     // ✅ ปุ่มนำทาง
                     Button(action: {
                         openInMaps()
@@ -105,20 +132,20 @@ struct SacredPlaceDetailView: View {
                     }
                     .padding(.horizontal)
                     
-                    // 👇 --- **ส่วน UI ที่แก้ไข** ---
+                    //ปุ่มเช็คอิน
                     VStack {
                         // 1. เช็คว่าเคยเช็คอินที่นี่เมื่อไม่นานมานี้หรือไม่
                         if checkInStore.hasCheckedInRecently(email: loggedInEmail, placeID: place.id.uuidString) {
                             VStack(spacing: 8) {
                                 Label(language.localized("เช็คอินแล้ว", "Checked-in"), systemImage: "checkmark.seal.fill")
-                                    .foregroundColor(.purple)
+                                    .foregroundColor(.green)
                                 
                                 // 2. แสดงเวลาที่เหลือ
                                 if timeRemaining > 0 {
                                     Text(language.localized("เช็คอินครั้งถัดไปได้ในอีก:", "Next check-in in:"))
                                     Text(formatTime(timeRemaining))
                                         .font(.system(.headline, design: .monospaced).bold())
-                                        .foregroundColor(.red)
+                                        .foregroundColor(.orange)
                                 } else {
                                     Text(language.localized("สามารถเช็คอินใหม่ได้แล้ว", "Ready to check-in again"))
                                         .font(.caption)
@@ -129,7 +156,7 @@ struct SacredPlaceDetailView: View {
                             .frame(maxWidth: .infinity)
                             .background(Color.gray.opacity(0.2))
                             .cornerRadius(12)
-                        }
+                        } 
                         // 3. เช็คว่าอยู่ในระยะที่เช็คอินได้หรือไม่
                         else if isUserNearPlace() {
                             Button(action: {
@@ -146,7 +173,6 @@ struct SacredPlaceDetailView: View {
                                     )
                                     checkInStore.add(record: newRecord)
                                     
-                                    // อัปเดตคะแนน Tag
                                     if let userIndex = memberStore.members.firstIndex(where: { $0.email == loggedInEmail }) {
                                         for tag in place.tags {
                                             memberStore.members[userIndex].tagScores[tag, default: 0] += 1
@@ -171,7 +197,7 @@ struct SacredPlaceDetailView: View {
                                     dismissButton: .default(Text(language.localized("ตกลง", "OK")))
                                 )
                             }
-                        }
+                        } 
                         // 4. กรณีที่อยู่นอกระยะ
                         else {
                             Text("📍 \(language.localized("คุณยังอยู่ไกลเกินกว่าจะเช็คอินได้", "You are too far to check-in"))")
@@ -184,7 +210,6 @@ struct SacredPlaceDetailView: View {
                     }
                     .padding(.horizontal)
                     .id(refreshTrigger)
-                    // -----------------------------
                     
                     // ✅ ปุ่มติดต่อ
                     Button(action: {
@@ -206,7 +231,6 @@ struct SacredPlaceDetailView: View {
                         Button("ยกเลิก", role: .cancel) {}
                     }
                 }
-                .padding()
             }
             .padding(.top)
         }
@@ -214,8 +238,13 @@ struct SacredPlaceDetailView: View {
             DetailSheetView(details: place.details)
                 .environmentObject(language)
         }
-        .onAppear(perform: startCountdownTimer) // 👈 เรียก Timer เมื่อหน้าจอแสดง
-        .onDisappear(perform: stopCountdownTimer) // 👈 หยุด Timer เมื่อออกจากหน้า
+        .onAppear {
+            isLiked = memberStore.isLiked(by: loggedInEmail, placeID: place.id)
+            startCountdownTimer()
+        }
+        .onDisappear {
+            stopCountdownTimer()
+        }
     }
     
     func isUserNearPlace() -> Bool {
@@ -225,8 +254,7 @@ struct SacredPlaceDetailView: View {
         }
         let placeLocation = CLLocation(latitude: place.latitude, longitude: place.longitude)
         let distance = userLocation.distance(from: placeLocation)
-        
-        return distance < 50000 // 50 km
+        return distance < 50000
     }
     
     func openInMaps() {
@@ -236,6 +264,7 @@ struct SacredPlaceDetailView: View {
             UIApplication.shared.open(url)
         }
     }
+    
     func contactPhone() {
         if let url = URL(string: "tel://022183365"), UIApplication.shared.canOpenURL(url) {
             UIApplication.shared.open(url)
@@ -255,9 +284,7 @@ struct SacredPlaceDetailView: View {
     }
     
     func startCountdownTimer() {
-        stopCountdownTimer() // หยุด Timer เก่าก่อนเริ่มใหม่
         updateTimeRemaining()
-        
         countdownTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
             updateTimeRemaining()
         }
@@ -280,13 +307,10 @@ struct SacredPlaceDetailView: View {
         }
     }
     
-    // 👇 --- **แก้ไขฟังก์ชันนี้** ---
     func formatTime(_ timeInterval: TimeInterval) -> String {
         let hours = Int(timeInterval) / 3600
         let minutes = Int(timeInterval) / 60 % 60
         let seconds = Int(timeInterval) % 60
-        
-        // จัดรูปแบบเป็น HH:MM:SS
         return String(format: "%02i:%02i:%02i", hours, minutes, seconds)
     }
 }
@@ -294,8 +318,8 @@ struct SacredPlaceDetailView: View {
 struct ExpandableTextView: View {
     let fullText: String
     let lineLimit: Int
-    
     @State private var isExpanded = false
+    @EnvironmentObject var language: AppLanguage
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -312,7 +336,4 @@ struct ExpandableTextView: View {
             }
         }
     }
-    
-    // เพิ่ม EnvironmentObject เพื่อให้ View ย่อยนี้รู้จักภาษาที่เลือก
-    @EnvironmentObject var language: AppLanguage
 }

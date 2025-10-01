@@ -1,6 +1,5 @@
 import Foundation
 
-/// เก็บไว้บน MainActor เพื่อความปลอดภัยกับ UI thread
 @MainActor
 class MemberStore: ObservableObject {
     @Published var members: [Member] = [] {
@@ -8,16 +7,11 @@ class MemberStore: ObservableObject {
     }
     
     private let key = "saved_members"
-    
-    // MARK: - Init / Load
     init() {
         loadMembers()
     }
     
-    // MARK: - Persistence
     func saveMembers() {
-        // ✅ เพื่อความเข้ากันได้ย้อนหลัง: ใช้ JSONEncoder ค่า default (เหมือนของเดิม)
-        //  (ถ้าจะย้ายไป ISO8601 ในอนาคต ทำ migration ทีหลังได้)
         do {
             let data = try JSONEncoder().encode(members)
             UserDefaults.standard.set(data, forKey: key)
@@ -31,25 +25,20 @@ class MemberStore: ObservableObject {
             self.members = []
             return
         }
-        // 🔁 พยายามถอดรหัส 2 แบบ: ISO8601 -> default (รองรับข้อมูลเก่า/ใหม่)
         if let decoded = decodeMembers(data: data) {
             self.members = decoded
         } else {
-            // ถ้า decode ไม่ได้เลย ให้รีเซ็ต (ป้องกันแครช)
             self.members = []
         }
     }
     
     private func decodeMembers(data: Data) -> [Member]? {
-        // 1) ลองแบบ ISO8601 (ถ้าในอนาคตคุณเปลี่ยนตัวเข้ารหัสเป็น ISO8601)
         do {
             let dec = JSONDecoder()
             dec.dateDecodingStrategy = .iso8601
             return try dec.decode([Member].self, from: data)
         } catch {
-            // fallthrough
         }
-        // 2) ลองแบบ default (เหมือนโค้ดเดิม)
         do {
             let dec = JSONDecoder()
             return try dec.decode([Member].self, from: data)
@@ -73,7 +62,6 @@ class MemberStore: ObservableObject {
         members.first { $0.email.caseInsensitiveCompare(email) == .orderedSame }
     }
     
-    /// แก้ไข/แทนที่สมาชิกทั้งก้อน (อิงตาม id)
     func updateMember(_ updated: Member) {
         guard let idx = members.firstIndex(where: { $0.id == updated.id }) else { return }
         members[idx] = updated
@@ -99,4 +87,28 @@ class MemberStore: ObservableObject {
         guard let idx = members.firstIndex(where: { $0.email.caseInsensitiveCompare(email) == .orderedSame }) else { return }
         members[idx].tagScores = scores
     }
+    
+    /// จัดการการกดไลค์สถานที่
+    func toggleLike(for memberEmail: String, place: SacredPlace) {
+        guard let index = members.firstIndex(where: { $0.email.lowercased() == memberEmail.lowercased() }) else { return }
+        if members[index].likedPlaceIDs.contains(place.id) {
+            members[index].likedPlaceIDs.remove(place.id)
+            for tag in place.tags {
+                members[index].tagScores[tag, default: 0] -= 1
+            }
+        } else {
+            members[index].likedPlaceIDs.insert(place.id)
+            for tag in place.tags {
+                members[index].tagScores[tag, default: 0] += 1
+            }
+        }
+    }
+    func isLiked(by memberEmail: String, placeID: UUID) -> Bool {
+        guard let member = members.first(where: { $0.email.lowercased() == memberEmail.lowercased() }) 
+        else {
+            return false
+        }
+        return member.likedPlaceIDs.contains(placeID)
+    }
 }
+
