@@ -31,14 +31,19 @@ struct AdminView: View {
     }
 }
 
+<<<<<<< HEAD
 
 // MARK: - 2. หน้าจอสำหรับจัดการสมาชิก (ฉบับสมบูรณ์)
+=======
+// MARK: - 2. หน้าจอสำหรับจัดการสมาชิก (ฉบับแก้ไข)
+>>>>>>> origin/fix-version
 struct MemberManagementView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Member.fullName) private var members: [Member]
     
     @EnvironmentObject var language: AppLanguage
     @EnvironmentObject var flowManager: MuTeLuFlowManager
+    @EnvironmentObject var checkInStore: CheckInStore // ✅ เพิ่มเข้ามา
     
     @State private var editingMember: Member?
     @State private var showingEditSheet = false
@@ -60,6 +65,10 @@ struct MemberManagementView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
+<<<<<<< HEAD
+=======
+                        // กลับไปหน้า Home ของแอป ไม่ใช่ Login
+>>>>>>> origin/fix-version
                         flowManager.currentScreen = .home
                     } label: {
                         HStack {
@@ -97,6 +106,15 @@ struct MemberManagementView: View {
         }
     }
     
+<<<<<<< HEAD
+=======
+    // ✅ เพิ่มฟังก์ชันคำนวณแต้มบุญ
+    private func calculateMeritPoints(for member: Member) -> Int {
+        return checkInStore.records(for: member.email)
+            .reduce(0) { $0 + $1.meritPoints }
+    }
+    
+>>>>>>> origin/fix-version
     @ViewBuilder
     func memberCard(for member: Member) -> some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -114,8 +132,10 @@ struct MemberManagementView: View {
                 Label("เพศ: \(member.gender)", systemImage: "person.circle")
                 Label("บ้านเลขที่: \(member.houseNumber)", systemImage: "house.fill")
                 Label("ทะเบียนรถ: \(member.carPlate)", systemImage: "car.fill")
-                Label("แต้มบุญ: \(member.meritPoints)", systemImage: "star.fill")
-                    .foregroundColor(.yellow)
+                
+                // ✅ แก้ไขให้เรียกใช้ฟังก์ชันคำนวณแต้ม
+                Label("แต้มบุญ: \(calculateMeritPoints(for: member))", systemImage: "star.fill")
+                    .foregroundColor(.orange)
             }
             .font(.caption)
             .foregroundColor(.secondary)
@@ -156,8 +176,12 @@ struct MemberManagementView: View {
     }
 }
 
+<<<<<<< HEAD
 
 // MARK: - 3. หน้าจอประวัติเช็คอิน (ฉบับสมบูรณ์)
+=======
+// MARK: - 3. หน้าจอประวัติเช็คอินทั้งหมด
+>>>>>>> origin/fix-version
 struct CheckinHistoryView: View {
     @Query(sort: \CheckInRecord.date, order: .reverse) private var records: [CheckInRecord]
     @Query(sort: \Member.fullName) private var members: [Member]
@@ -180,18 +204,31 @@ struct CheckinHistoryView: View {
         
         if !searchText.isEmpty {
             let searchOptions: String.CompareOptions = [.caseInsensitive, .diacriticInsensitive]
+<<<<<<< HEAD
             filtered = filtered.filter { record in
                 if record.placeNameTH.range(of: searchText, options: searchOptions) != nil { return true }
                 if record.placeNameEN.range(of: searchText, options: searchOptions) != nil { return true }
                 if record.memberEmail.range(of: searchText, options: searchOptions) != nil { return true }
+=======
+            
+            records = records.filter { record in
+                if record.placeNameTH.range(of: searchText, options: searchOptions) != nil { return true }
+                if record.placeNameEN.range(of: searchText, options: searchOptions) != nil { return true }
+                if record.memberEmail.range(of: searchText, options: searchOptions) != nil { return true }
+                
+>>>>>>> origin/fix-version
                 if let member = findMember(by: record.memberEmail) {
                     if member.fullName.range(of: searchText, options: searchOptions) != nil { return true }
                 }
                 return false
             }
         }
+<<<<<<< HEAD
         
         return filtered
+=======
+        return records
+>>>>>>> origin/fix-version
     }
     
     var body: some View {
@@ -208,14 +245,22 @@ struct CheckinHistoryView: View {
                         Section {
                             Picker("กรองตามสมาชิก", selection: $selectedUserEmail) {
                                 Text("สมาชิกทั้งหมด").tag(String?.none)
+<<<<<<< HEAD
                                 ForEach(members) { member in
+=======
+                                ForEach(memberStore.members) { member in
+>>>>>>> origin/fix-version
                                     Text(member.fullName).tag(String?(member.email))
                                 }
                             }
                             
                             Picker("กรองตามสถานที่", selection: $selectedPlaceID) {
                                 Text("สถานที่ทั้งหมด").tag(String?.none)
+<<<<<<< HEAD
                                 let uniquePlaces = Dictionary(grouping: records, by: { $0.placeID })
+=======
+                                let uniquePlaces = Dictionary(grouping: checkInStore.records, by: { $0.placeID })
+>>>>>>> origin/fix-version
                                     .compactMap { $0.value.first }
                                     .sorted { $0.placeNameTH < $1.placeNameTH }
                                 
@@ -249,8 +294,7 @@ struct CheckinHistoryView: View {
     }
 }
 
-
-// MARK: - 4. UI สำหรับแสดงผลแต่ละแถวในหน้าประวัติเช็คอิน
+// MARK: - 4. UI สำหรับแสดงผลแต่ละแถว
 struct CheckInRow: View {
     let record: CheckInRecord
     @Query private var members: [Member]
@@ -264,6 +308,10 @@ struct CheckInRow: View {
         VStack(alignment: .leading, spacing: 8) {
             Text(language.localized(record.placeNameTH, record.placeNameEN))
                 .font(.headline)
+<<<<<<< HEAD
+=======
+                .foregroundColor(.purple) // ✅ แก้ไขสี
+>>>>>>> origin/fix-version
             
             Divider()
             
@@ -273,7 +321,11 @@ struct CheckInRow: View {
                     Label(record.memberEmail, systemImage: "envelope.fill")
                 }
                 .font(.caption)
+<<<<<<< HEAD
                 .foregroundColor(.secondary)
+=======
+                .foregroundColor(.secondary) // ✅ แก้ไขสี
+>>>>>>> origin/fix-version
                 
                 Spacer()
                 
