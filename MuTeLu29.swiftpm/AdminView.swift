@@ -6,12 +6,12 @@ import SwiftData
 struct AdminView: View {
     @EnvironmentObject var language: AppLanguage
     @State private var selectedTab: AdminTab = .members
-    
+
     enum AdminTab {
         case members
         case checkIns
     }
-    
+
     var body: some View {
         TabView(selection: $selectedTab) {
             // -- แท็บที่ 1: จัดการสมาชิก --
@@ -20,7 +20,7 @@ struct AdminView: View {
                     Label(language.localized("สมาชิก", "Members"), systemImage: "person.3.fill")
                 }
                 .tag(AdminTab.members)
-            
+
             // -- แท็บที่ 2: ประวัติการเช็คอิน --
             CheckinHistoryView()
                 .tabItem {
@@ -31,26 +31,21 @@ struct AdminView: View {
     }
 }
 
-<<<<<<< HEAD
-
-// MARK: - 2. หน้าจอสำหรับจัดการสมาชิก (ฉบับสมบูรณ์)
-=======
-// MARK: - 2. หน้าจอสำหรับจัดการสมาชิก (ฉบับแก้ไข)
->>>>>>> origin/fix-version
+// MARK: - 2. หน้าจอสำหรับจัดการสมาชิก
 struct MemberManagementView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Member.fullName) private var members: [Member]
-    
+    @Query(sort: \CheckInRecord.date, order: .reverse) private var allCheckIns: [CheckInRecord]
+
     @EnvironmentObject var language: AppLanguage
     @EnvironmentObject var flowManager: MuTeLuFlowManager
-    @EnvironmentObject var checkInStore: CheckInStore // ✅ เพิ่มเข้ามา
-    
+
     @State private var editingMember: Member?
     @State private var showingEditSheet = false
     @State private var memberToDelete: Member?
     @State private var showDeleteConfirm = false
     @State private var showingAddSheet = false
-    
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -65,10 +60,7 @@ struct MemberManagementView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
-<<<<<<< HEAD
-=======
                         // กลับไปหน้า Home ของแอป ไม่ใช่ Login
->>>>>>> origin/fix-version
                         flowManager.currentScreen = .home
                     } label: {
                         HStack {
@@ -105,16 +97,14 @@ struct MemberManagementView: View {
             }
         }
     }
-    
-<<<<<<< HEAD
-=======
-    // ✅ เพิ่มฟังก์ชันคำนวณแต้มบุญ
+
+    // ✅ ฟังก์ชันคำนวณแต้มบุญจาก SwiftData Query
     private func calculateMeritPoints(for member: Member) -> Int {
-        return checkInStore.records(for: member.email)
+        return allCheckIns
+            .filter { $0.memberEmail.caseInsensitiveCompare(member.email) == .orderedSame }
             .reduce(0) { $0 + $1.meritPoints }
     }
-    
->>>>>>> origin/fix-version
+
     @ViewBuilder
     func memberCard(for member: Member) -> some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -132,8 +122,8 @@ struct MemberManagementView: View {
                 Label("เพศ: \(member.gender)", systemImage: "person.circle")
                 Label("บ้านเลขที่: \(member.houseNumber)", systemImage: "house.fill")
                 Label("ทะเบียนรถ: \(member.carPlate)", systemImage: "car.fill")
-                
-                // ✅ แก้ไขให้เรียกใช้ฟังก์ชันคำนวณแต้ม
+
+                // ✅ แสดงแต้มบุญจาก SwiftData
                 Label("แต้มบุญ: \(calculateMeritPoints(for: member))", systemImage: "star.fill")
                     .foregroundColor(.orange)
             }
@@ -162,11 +152,11 @@ struct MemberManagementView: View {
         .cornerRadius(15)
         .shadow(color: .black.opacity(0.1), radius: 5, y: 2)
     }
-    
+
     func delete(_ member: Member) {
         modelContext.delete(member)
     }
-    
+
     func formattedDate(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateStyle = .long
@@ -176,61 +166,43 @@ struct MemberManagementView: View {
     }
 }
 
-<<<<<<< HEAD
-
-// MARK: - 3. หน้าจอประวัติเช็คอิน (ฉบับสมบูรณ์)
-=======
 // MARK: - 3. หน้าจอประวัติเช็คอินทั้งหมด
->>>>>>> origin/fix-version
 struct CheckinHistoryView: View {
     @Query(sort: \CheckInRecord.date, order: .reverse) private var records: [CheckInRecord]
     @Query(sort: \Member.fullName) private var members: [Member]
     @EnvironmentObject var language: AppLanguage
-    
+
     @State private var searchText = ""
     @State private var selectedUserEmail: String? = nil
     @State private var selectedPlaceID: String? = nil
-    
+
     private var filteredRecords: [CheckInRecord] {
         var filtered = records
-        
+
         if let email = selectedUserEmail {
             filtered = filtered.filter { $0.memberEmail == email }
         }
-        
+
         if let placeID = selectedPlaceID {
             filtered = filtered.filter { $0.placeID == placeID }
         }
-        
+
         if !searchText.isEmpty {
             let searchOptions: String.CompareOptions = [.caseInsensitive, .diacriticInsensitive]
-<<<<<<< HEAD
             filtered = filtered.filter { record in
                 if record.placeNameTH.range(of: searchText, options: searchOptions) != nil { return true }
                 if record.placeNameEN.range(of: searchText, options: searchOptions) != nil { return true }
                 if record.memberEmail.range(of: searchText, options: searchOptions) != nil { return true }
-=======
-            
-            records = records.filter { record in
-                if record.placeNameTH.range(of: searchText, options: searchOptions) != nil { return true }
-                if record.placeNameEN.range(of: searchText, options: searchOptions) != nil { return true }
-                if record.memberEmail.range(of: searchText, options: searchOptions) != nil { return true }
-                
->>>>>>> origin/fix-version
                 if let member = findMember(by: record.memberEmail) {
                     if member.fullName.range(of: searchText, options: searchOptions) != nil { return true }
                 }
                 return false
             }
         }
-<<<<<<< HEAD
-        
+
         return filtered
-=======
-        return records
->>>>>>> origin/fix-version
     }
-    
+
     var body: some View {
         NavigationStack {
             List(filteredRecords) { record in
@@ -245,31 +217,23 @@ struct CheckinHistoryView: View {
                         Section {
                             Picker("กรองตามสมาชิก", selection: $selectedUserEmail) {
                                 Text("สมาชิกทั้งหมด").tag(String?.none)
-<<<<<<< HEAD
                                 ForEach(members) { member in
-=======
-                                ForEach(memberStore.members) { member in
->>>>>>> origin/fix-version
                                     Text(member.fullName).tag(String?(member.email))
                                 }
                             }
-                            
+
                             Picker("กรองตามสถานที่", selection: $selectedPlaceID) {
                                 Text("สถานที่ทั้งหมด").tag(String?.none)
-<<<<<<< HEAD
                                 let uniquePlaces = Dictionary(grouping: records, by: { $0.placeID })
-=======
-                                let uniquePlaces = Dictionary(grouping: checkInStore.records, by: { $0.placeID })
->>>>>>> origin/fix-version
                                     .compactMap { $0.value.first }
                                     .sorted { $0.placeNameTH < $1.placeNameTH }
-                                
+
                                 ForEach(uniquePlaces, id: \.placeID) { record in
                                     Text(record.placeNameTH).tag(String?(record.placeID))
                                 }
                             }
                         }
-                        
+
                         if selectedUserEmail != nil || selectedPlaceID != nil {
                             Section {
                                 Button(role: .destructive) {
@@ -288,7 +252,7 @@ struct CheckinHistoryView: View {
             }
         }
     }
-    
+
     private func findMember(by email: String) -> Member? {
         return members.first { $0.email.caseInsensitiveCompare(email) == .orderedSame }
     }
@@ -299,36 +263,29 @@ struct CheckInRow: View {
     let record: CheckInRecord
     @Query private var members: [Member]
     @EnvironmentObject var language: AppLanguage
-    
+
     private var memberName: String {
         members.first { $0.email.caseInsensitiveCompare(record.memberEmail) == .orderedSame }?.fullName ?? "Unknown User"
     }
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(language.localized(record.placeNameTH, record.placeNameEN))
                 .font(.headline)
-<<<<<<< HEAD
-=======
-                .foregroundColor(.purple) // ✅ แก้ไขสี
->>>>>>> origin/fix-version
-            
+                .foregroundColor(.purple)
+
             Divider()
-            
+
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Label(memberName, systemImage: "person.fill")
                     Label(record.memberEmail, systemImage: "envelope.fill")
                 }
                 .font(.caption)
-<<<<<<< HEAD
                 .foregroundColor(.secondary)
-=======
-                .foregroundColor(.secondary) // ✅ แก้ไขสี
->>>>>>> origin/fix-version
-                
+
                 Spacer()
-                
+
                 VStack(alignment: .trailing, spacing: 4) {
                     Text(record.date, style: .date)
                     Text(record.date, style: .time)
@@ -336,7 +293,7 @@ struct CheckInRow: View {
                 .font(.caption)
                 .foregroundColor(.gray)
             }
-            
+
             Text("+\(record.meritPoints) แต้มบุญ")
                 .font(.footnote.bold())
                 .foregroundColor(.green)
