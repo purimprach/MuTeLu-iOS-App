@@ -50,7 +50,7 @@ struct DailyBannerView: View {
                     .font(.system(size: 20, weight: .semibold))
                 Text(fortuneText)
                     .font(.body)
-                    .foregroundStyle(.black.opacity(0.95))
+                    .foregroundStyle(.black.opacity(1))
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer()
             }
@@ -67,7 +67,7 @@ struct DailyBannerView: View {
                     icon: AnyView(
                         Image(systemName: "paintpalette")
                             .symbolRenderingMode(.palette)
-                            .foregroundStyle(.white, .white.opacity(0.35))
+                            .foregroundStyle(.white, .white.opacity(0.5))
                             .font(.system(size: 14, weight: .semibold))
                     )
                 )
@@ -137,7 +137,7 @@ private struct ColorChip: View {
             Circle()
                 .fill(swatch)
                 .frame(width: 14, height: 14)
-                .overlay(Circle().strokeBorder(.white.opacity(0.5), lineWidth: 1))
+                .overlay(Circle().strokeBorder(.white.opacity(0.9), lineWidth: 1))
             Text(value)
                 .font(.footnote.weight(.medium))
                 .lineLimit(1)

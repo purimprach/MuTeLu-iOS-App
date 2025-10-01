@@ -19,7 +19,6 @@ extension Color {
     static let surfaceOverlay = Color.primary.opacity(0.06)
 }
 
-// ⚠️ ให้มี extension นี้ “ที่เดียว” ในโปรเจกต์ ถ้ามีที่อื่นให้ลบทิ้ง
 extension String {
     /// อักษร 2 ตัวจาก local-part ของอีเมล
     var emailInitials: String {

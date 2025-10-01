@@ -16,6 +16,9 @@ struct CheckInRecord: Codable, Identifiable {
 class CheckInStore: ObservableObject {
     @Published var records: [CheckInRecord] = []
     
+    // กำหนดระยะเวลา Cooldown เป็นวินาที (12 ชั่วโมง * 60 นาที * 60 วินาที)
+    private let cooldownInterval: TimeInterval = 12 * 60 * 60
+    
     init() {
         load()
     }
@@ -55,26 +58,14 @@ class CheckInStore: ObservableObject {
         save()
     }
 
-    // เปลี่ยนเป็น 1 นาที สำหรับทดสอบ
     func hasCheckedInRecently(email: String, placeID: String) -> Bool {
-        let oneMinuteAgo = Date().addingTimeInterval(-1 * 60) // 1 นาทีที่แล้ว
+        // เวลาเมื่อ 12 ชั่วโมงที่แล้ว
+        let twelveHoursAgo = Date().addingTimeInterval(-cooldownInterval)
+        
         let recentCheckIn = records.contains {
             $0.memberEmail == email &&
             $0.placeID == placeID &&
-            $0.date >= oneMinuteAgo
-        }
-        
-        // Debug logging
-        print("🔍 Checking recent check-in:")
-        print("   Email: \(email)")
-        print("   PlaceID: \(placeID)")
-        print("   Total records: \(records.count)")
-        print("   Records for this user: \(records.filter { $0.memberEmail == email }.count)")
-        print("   Recent check-in exists: \(recentCheckIn)")
-        
-        if let lastCheckIn = records.filter({ $0.memberEmail == email && $0.placeID == placeID }).max(by: { $0.date < $1.date }) {
-            print("   Last check-in date: \(lastCheckIn.date)")
-            print("   Time difference: \(Date().timeIntervalSince(lastCheckIn.date)/60) minutes ago")
+            $0.date >= twelveHoursAgo
         }
         
         return recentCheckIn
@@ -91,7 +82,8 @@ class CheckInStore: ObservableObject {
             return nil // ไม่เคยเช็คอิน
         }
         
-        let nextAllowedTime = lastCheckIn.date.addingTimeInterval(1 * 60) // 1 นาทีหลังจากเช็คอินครั้งล่าสุด
+        // เวลาถัดไปที่สามารถเช็คอินได้ (12 ชั่วโมงหลังจากครั้งล่าสุด)
+        let nextAllowedTime = lastCheckIn.date.addingTimeInterval(cooldownInterval)
         let now = Date()
         
         if nextAllowedTime > now {

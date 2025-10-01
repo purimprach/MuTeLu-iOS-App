@@ -105,32 +105,34 @@ struct SacredPlaceDetailView: View {
                     }
                     .padding(.horizontal)
                     
-                    //ปุ่มเช็คอิน
+                    // 👇 --- **ส่วน UI ที่แก้ไข** ---
                     VStack {
+                        // 1. เช็คว่าเคยเช็คอินที่นี่เมื่อไม่นานมานี้หรือไม่
                         if checkInStore.hasCheckedInRecently(email: loggedInEmail, placeID: place.id.uuidString) {
                             VStack(spacing: 8) {
-                                Label("✅ เช็คอินแล้ว", systemImage: "checkmark.seal.fill")
-                                    .foregroundColor(.green)
+                                Label(language.localized("เช็คอินแล้ว", "Checked-in"), systemImage: "checkmark.seal.fill")
+                                    .foregroundColor(.purple)
                                 
+                                // 2. แสดงเวลาที่เหลือ
                                 if timeRemaining > 0 {
-                                    Text("เช็คอินครั้งถัดไปได้ในอีก: \(formatTime(timeRemaining))")
-                                        .font(.caption)
-                                        .foregroundColor(.orange)
-                                        .fontWeight(.medium)
+                                    Text(language.localized("เช็คอินครั้งถัดไปได้ในอีก:", "Next check-in in:"))
+                                    Text(formatTime(timeRemaining))
+                                        .font(.system(.headline, design: .monospaced).bold())
+                                        .foregroundColor(.red)
                                 } else {
-                                    Text("สามารถเช็คอินใหม่ได้แล้ว")
+                                    Text(language.localized("สามารถเช็คอินใหม่ได้แล้ว", "Ready to check-in again"))
                                         .font(.caption)
                                         .foregroundColor(.blue)
-                                        .fontWeight(.medium)
                                 }
                             }
                             .padding()
                             .frame(maxWidth: .infinity)
                             .background(Color.gray.opacity(0.2))
                             .cornerRadius(12)
-                        } else if isUserNearPlace() {
+                        }
+                        // 3. เช็คว่าอยู่ในระยะที่เช็คอินได้หรือไม่
+                        else if isUserNearPlace() {
                             Button(action: {
-                                // ตรวจสอบอีกครั้งก่อนเช็คอิน
                                 if !checkInStore.hasCheckedInRecently(email: loggedInEmail, placeID: place.id.uuidString) {
                                     let newRecord = CheckInRecord(
                                         placeID: place.id.uuidString,
@@ -144,23 +146,18 @@ struct SacredPlaceDetailView: View {
                                     )
                                     checkInStore.add(record: newRecord)
                                     
-                                    // 👇 --- **LÓGICA ADICIONADA AQUI** ---
-                                    // Encontra o usuário atual no memberStore
+                                    // อัปเดตคะแนน Tag
                                     if let userIndex = memberStore.members.firstIndex(where: { $0.email == loggedInEmail }) {
-                                        // Itera sobre todas as tags deste local
                                         for tag in place.tags {
-                                            // Adiciona a pontuação ao dicionário, começando em 1 se ainda não existir
                                             memberStore.members[userIndex].tagScores[tag, default: 0] += 1
                                         }
-                                        print("Pontuações de tags atualizadas para \(loggedInEmail): \(memberStore.members[userIndex].tagScores)")
                                     }
-                                    // ------------------------
                                     
-                                    refreshTrigger = UUID() // Força a atualização da UI
+                                    refreshTrigger = UUID()
                                     showCheckinAlert = true
                                 }
                             }) {
-                                Label("เช็คอินเพื่อรับแต้ม", systemImage: "checkmark.seal.fill")
+                                Label(language.localized("เช็คอินเพื่อรับแต้ม", "Check-in to earn points"), systemImage: "checkmark.seal.fill")
                                     .foregroundColor(.white)
                                     .padding()
                                     .frame(maxWidth: .infinity)
@@ -169,13 +166,15 @@ struct SacredPlaceDetailView: View {
                             }
                             .alert(isPresented: $showCheckinAlert) {
                                 Alert(
-                                    title: Text("✅ สำเร็จ"),
-                                    message: Text("คุณได้เช็คอินเรียบร้อยแล้ว! รับ 15 แต้ม"),
-                                    dismissButton: .default(Text("ตกลง"))
+                                    title: Text("✅ \(language.localized("สำเร็จ", "Success"))"),
+                                    message: Text(language.localized("คุณได้เช็คอินเรียบร้อยแล้ว! รับ 15 แต้ม", "You have checked in! Received 15 points")),
+                                    dismissButton: .default(Text(language.localized("ตกลง", "OK")))
                                 )
                             }
-                        } else {
-                            Text("📍 คุณยังอยู่ไกลเกินกว่าจะเช็คอินได้")
+                        }
+                        // 4. กรณีที่อยู่นอกระยะ
+                        else {
+                            Text("📍 \(language.localized("คุณยังอยู่ไกลเกินกว่าจะเช็คอินได้", "You are too far to check-in"))")
                                 .foregroundColor(.gray)
                                 .padding()
                                 .frame(maxWidth: .infinity)
@@ -184,7 +183,8 @@ struct SacredPlaceDetailView: View {
                         }
                     }
                     .padding(.horizontal)
-                    .id(refreshTrigger) // Força a atualização quando refreshTrigger muda
+                    .id(refreshTrigger)
+                    // -----------------------------
                     
                     // ✅ ปุ่มติดต่อ
                     Button(action: {
@@ -200,15 +200,9 @@ struct SacredPlaceDetailView: View {
                     }
                     .padding(.horizontal)
                     .confirmationDialog("ติดต่อสถานที่", isPresented: $showContactOptions, titleVisibility: .visible) {
-                        Button("โทร") {
-                            contactPhone()
-                        }
-                        Button("อีเมล") {
-                            contactEmail()
-                        }
-                        Button("แอดไลน์") {
-                            openLine()
-                        }
+                        Button("โทร") { contactPhone() }
+                        Button("อีเมล") { contactEmail() }
+                        Button("แอดไลน์") { openLine() }
                         Button("ยกเลิก", role: .cancel) {}
                     }
                 }
@@ -216,18 +210,15 @@ struct SacredPlaceDetailView: View {
             }
             .padding(.top)
         }
-        // ✅ Sheet แสดงข้อมูลรายละเอียด
         .sheet(isPresented: $showDetailSheet) {
             DetailSheetView(details: place.details)
                 .environmentObject(language)
         }
-        .onDisappear {
-            stopCountdownTimer()
-        }
+        .onAppear(perform: startCountdownTimer) // 👈 เรียก Timer เมื่อหน้าจอแสดง
+        .onDisappear(perform: stopCountdownTimer) // 👈 หยุด Timer เมื่อออกจากหน้า
     }
     
     func isUserNearPlace() -> Bool {
-        
         guard let userLocation = locationManager.userLocation else {
             print("❌ ไม่พบตำแหน่งผู้ใช้")
             return false
@@ -235,7 +226,7 @@ struct SacredPlaceDetailView: View {
         let placeLocation = CLLocation(latitude: place.latitude, longitude: place.longitude)
         let distance = userLocation.distance(from: placeLocation)
         
-        return distance < 50000
+        return distance < 50000 // 50 km
     }
     
     func openInMaps() {
@@ -264,6 +255,7 @@ struct SacredPlaceDetailView: View {
     }
     
     func startCountdownTimer() {
+        stopCountdownTimer() // หยุด Timer เก่าก่อนเริ่มใหม่
         updateTimeRemaining()
         
         countdownTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
@@ -280,19 +272,25 @@ struct SacredPlaceDetailView: View {
         if let remaining = checkInStore.timeRemainingUntilNextCheckIn(email: loggedInEmail, placeID: place.id.uuidString) {
             timeRemaining = remaining
             if remaining <= 0 {
-                refreshTrigger = UUID() // Força a atualização da UI quando o contador chegar a 0
+                stopCountdownTimer()
+                refreshTrigger = UUID()
             }
         } else {
             timeRemaining = 0
         }
     }
     
+    // 👇 --- **แก้ไขฟังก์ชันนี้** ---
     func formatTime(_ timeInterval: TimeInterval) -> String {
-        let minutes = Int(timeInterval) / 60
+        let hours = Int(timeInterval) / 3600
+        let minutes = Int(timeInterval) / 60 % 60
         let seconds = Int(timeInterval) % 60
-        return String(format: "%02d:%02d", minutes, seconds)
+        
+        // จัดรูปแบบเป็น HH:MM:SS
+        return String(format: "%02i:%02i:%02i", hours, minutes, seconds)
     }
 }
+
 struct ExpandableTextView: View {
     let fullText: String
     let lineLimit: Int
@@ -308,10 +306,13 @@ struct ExpandableTextView: View {
             Button(action: {
                 isExpanded.toggle()
             }) {
-                Text(isExpanded ? "แสดงน้อยลง" : "อ่านเพิ่มเติม")
+                Text(isExpanded ? language.localized("แสดงน้อยลง", "Show Less") : language.localized("อ่านเพิ่มเติม", "Read More"))
                     .font(.subheadline)
                     .foregroundColor(.purple)
             }
         }
     }
+    
+    // เพิ่ม EnvironmentObject เพื่อให้ View ย่อยนี้รู้จักภาษาที่เลือก
+    @EnvironmentObject var language: AppLanguage
 }

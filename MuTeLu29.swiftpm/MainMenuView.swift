@@ -371,14 +371,14 @@ private struct QuickActionsGrid: View {
             ("แนะนำสถานที่ศักดิ์สิทธิ์สำหรับคุณ","Recommended for You","wand.and.stars",.recommenderForYou),
             ("แนะนำสถานที่ศักดิ์สิทธิ์รอบจุฬาฯ","Sacred Places around Chula","building.columns", .recommendation),
             ("ทำนายเบอร์โทร","Phone Fortune","phone.circle", .phoneFortune),
+            ("คะแนนแต้มบุญ","Merit Points","star.circle", .meritPoints),
             ("สีเสื้อประจำวัน","Shirt Color","tshirt", .shirtColor),
             ("เลขทะเบียนรถ","Car Plate Number","car", .carPlate),
             ("เลขที่บ้าน","House Number","house", .houseNumber),
             ("ดูดวงไพ่ทาโร่","Tarot Reading","suit.club", .tarot),
             ("เซียมซี","Fortune Sticks","scroll", .seamSi),
             ("คาถาประจำวัน","Daily Mantra","sparkles", .mantra),
-            ("เกร็ดความรู้","Knowledge","book.closed", .knowledge),
-            ("คะแนนแต้มบุญ","Merit Points","star.circle", .meritPoints)
+            ("เกร็ดความรู้","Knowledge","book.closed", .knowledge)
         ]
     }
     
