@@ -27,7 +27,15 @@ struct HomeView: View {
     private var currentMember: Member? {
         members.first { $0.email == loggedInEmail }
     }
-    
+
+    // MARK: - Coordinate Validation
+    private func isValidBangkokCoordinate(lat: Double, lng: Double) -> Bool {
+        // Bangkok bounds: lat 13.5-14.0°N, lng 100.3-100.9°E
+        return lat.isFinite && lng.isFinite &&
+               lat >= 13.5 && lat <= 14.0 &&
+               lng >= 100.3 && lng <= 100.9
+    }
+
     // MARK: - Body (ฉบับแก้ไข)
     var body: some View {
         // 👇 **เราจะใช้ TabView เป็น View หลักของหน้านี้เลย**
@@ -93,7 +101,18 @@ struct HomeView: View {
             await MainActor.run { locationUnavailable = true }
             return
         }
-        
+
+        // ✅ Validate user location
+        guard isValidBangkokCoordinate(lat: userCL.coordinate.latitude, lng: userCL.coordinate.longitude) else {
+            print("⚠️ Invalid user location: lat=\(userCL.coordinate.latitude), lng=\(userCL.coordinate.longitude)")
+            await MainActor.run {
+                locationUnavailable = true
+                nearestWithDistance = []
+                topRatedPlaces = Array(sacredPlaces.sorted { $0.rating > $1.rating }.prefix(3))
+            }
+            return
+        }
+
         // กันคำนวณถี่เกินไป
         if let last = lastComputedLocation {
             let moved = userCL.distance(from: last)

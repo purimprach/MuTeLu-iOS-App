@@ -11,9 +11,48 @@ struct MuTeLuApp: App {
     
     init() {
         do {
-            modelContainer = try ModelContainer(for: Member.self, CheckInRecord.self)
+            // 1. สร้าง Schema อย่างชัดเจน
+            let schema = Schema([
+                Member.self,
+                CheckInRecord.self,
+                UserTagPreference.self,
+                UserInteraction.self
+            ])
+
+            // 2. กำหนด ModelConfiguration
+            let modelConfiguration = ModelConfiguration(
+                schema: schema,
+                isStoredInMemoryOnly: false,
+                allowsSave: true
+            )
+
+            // 3. สร้าง ModelContainer ด้วย explicit configuration
+            modelContainer = try ModelContainer(
+                for: schema,
+                configurations: [modelConfiguration]
+            )
+
+            // 4. Debug logging
+            #if DEBUG
+            print("✅ ModelContainer initialized successfully")
+            if let storeURL = modelContainer.configurations.first?.url {
+                print("📂 SwiftData store: \(storeURL.path)")
+            }
+            #endif
+
         } catch {
-            fatalError("Could not initialize ModelContainer")
+            // 5. ปรับปรุง error message
+            #if DEBUG
+            print("❌ ModelContainer initialization failed")
+            print("Error: \(error.localizedDescription)")
+            if let nsError = error as NSError? {
+                print("Domain: \(nsError.domain)")
+                print("Code: \(nsError.code)")
+                print("UserInfo: \(nsError.userInfo)")
+            }
+            #endif
+
+            fatalError("Could not initialize ModelContainer: \(error.localizedDescription)")
         }
     }
     

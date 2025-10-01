@@ -9,6 +9,7 @@ struct ProfileView: View {
     
     @EnvironmentObject var language: AppLanguage
     @EnvironmentObject var flowManager: MuTeLuFlowManager
+    @EnvironmentObject var locationManager: LocationManager
     @AppStorage("loggedInEmail") private var loggedInEmail: String = ""
     
     // State สำหรับรูปภาพและ Alert
@@ -133,6 +134,23 @@ struct ProfileView: View {
                     }
                     Button(language.localized("ยกเลิก", "Cancel"), role: .cancel) {}
                 }
+
+                #if DEBUG
+                // 🛠️ Debug Settings Panel
+                VStack(spacing: 0) {
+                    Divider()
+                        .padding(.vertical, 16)
+
+                    DebugLocationView()
+                        .environmentObject(locationManager)
+
+                    Divider()
+                        .padding(.vertical, 16)
+
+                    DatabaseInspectorView()
+                }
+                .padding(.horizontal)
+                #endif
             }
             .padding(.bottom)
         }

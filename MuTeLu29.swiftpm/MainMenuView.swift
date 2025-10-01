@@ -87,6 +87,11 @@ struct MainMenuView: View {
     }
     // helper
     func formatDistance(_ meters: CLLocationDistance, locale: Locale = Locale(identifier: "th_TH")) -> String {
+        // ✅ Validate distance
+        guard meters.isFinite && meters >= 0 && meters < 1_000_000 else {
+            return locale.identifier.hasPrefix("th") ? "ระยะทางไม่ถูกต้อง" : "Invalid distance"
+        }
+
         let f = MKDistanceFormatter()
         f.unitStyle = .abbreviated
         f.locale = locale

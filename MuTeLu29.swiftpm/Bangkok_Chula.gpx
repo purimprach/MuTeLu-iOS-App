@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<gpx version="1.1" creator="Xcode">
+    <!--
+        Chulalongkorn University, Bangkok
+        พิกัดกลางมหาวิทยาลัยจุฬาลงกรณ์
+    -->
+    <wpt lat="13.7563" lon="100.5018">
+        <name>Bangkok - Chulalongkorn University</name>
+        <desc>Center of Chulalongkorn University</desc>
+    </wpt>
+</gpx>

@@ -38,16 +38,35 @@ actor RouteDistanceService {
         to destination: CLLocationCoordinate2D,
         preferred: TransportMode
     ) async -> CLLocationDistance? {
+        // ✅ Validate coordinates
+        guard isValidBangkokCoordinate(origin) && isValidBangkokCoordinate(destination) else {
+            print("⚠️ Invalid coordinates - origin: (\(origin.latitude), \(origin.longitude)), dest: (\(destination.latitude), \(destination.longitude))")
+            return nil
+        }
+
+        // Try preferred mode route
         if let d = await routeDistance(origin: origin, destination: destination, transport: preferred.mapKitType) {
             return d
         }
+
+        // Try walking mode as fallback
         if preferred != .walking,
            let d = await routeDistance(origin: origin, destination: destination, transport: .walking) {
             return d
         }
+
+        // Fallback to straight-line distance with validation
         let straight = CLLocation(latitude: origin.latitude, longitude: origin.longitude)
             .distance(from: CLLocation(latitude: destination.latitude, longitude: destination.longitude))
-        return straight.isFinite ? straight : nil
+
+        // ✅ Sanity check: Bangkok max ~50km diameter
+        guard straight.isFinite && straight >= 0 && straight < 50_000 else {
+            print("⚠️ Unrealistic straight-line distance: \(straight) meters")
+            return nil
+        }
+
+        print("ℹ️ Using straight-line fallback for distance calculation: \(straight) meters")
+        return straight
     }
     
     private func routeDistance(
@@ -74,8 +93,22 @@ actor RouteDistanceService {
         return await withCheckedContinuation { cont in
             directions.calculate { response, error in
                 if let route = response?.routes.first {
-                    cont.resume(returning: route.distance)
+                    let dist = route.distance
+
+                    // ✅ Log route success
+                    print("✅ Route found: \(dist) meters")
+
+                    // ✅ Validate route distance
+                    if !dist.isFinite || dist < 0 || dist > 1_000_000 {
+                        print("⚠️ Abnormal route distance: \(dist) meters")
+                        cont.resume(returning: nil)
+                    } else {
+                        cont.resume(returning: dist)
+                    }
                 } else {
+                    if let error = error {
+                        print("❌ Route calculation failed: \(error.localizedDescription)")
+                    }
                     cont.resume(returning: nil)
                 }
             }
@@ -89,5 +122,14 @@ private extension TransportMode {
         case .driving: return .automobile
         case .walking: return .walking
         }
+    }
+}
+
+private extension RouteDistanceService {
+    func isValidBangkokCoordinate(_ coord: CLLocationCoordinate2D) -> Bool {
+        // Bangkok bounds: lat 13.5-14.0°N, lng 100.3-100.9°E
+        return coord.latitude.isFinite && coord.longitude.isFinite &&
+               coord.latitude >= 13.5 && coord.latitude <= 14.0 &&
+               coord.longitude >= 100.3 && coord.longitude <= 100.9
     }
 }

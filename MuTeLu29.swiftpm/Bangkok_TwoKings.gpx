@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<gpx version="1.1" creator="Xcode">
+    <!--
+        Two Kings Monument, Chulalongkorn University
+        พระบรมราชานุสาวรีย์ 2 รัชกาล (จากข้อมูล JSON)
+    -->
+    <wpt lat="13.73841" lon="100.53170">
+        <name>Bangkok - Two Kings Monument</name>
+        <desc>Royal Monument at Chulalongkorn University</desc>
+    </wpt>
+</gpx>
