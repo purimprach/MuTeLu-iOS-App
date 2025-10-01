@@ -1,7 +1,6 @@
 import SwiftUI
 
 // MARK: - DailyBannerView
-
 struct DailyBannerView: View {
     var member: Member? = nil
     @EnvironmentObject var language: AppLanguage
@@ -30,16 +29,17 @@ struct DailyBannerView: View {
                                       startPoint: .topLeading, endPoint: .bottomTrailing)
         
         VStack(alignment: .leading, spacing: 14) {
+            
             // Header – Date
             HStack(alignment: .center,spacing: 10) {
                 Image(systemName: "calendar.badge.clock")
                     .symbolRenderingMode(.palette)
                     .foregroundStyle(.black, .white.opacity(1))
                     .font(.system(size: 22, weight: .semibold))
-                    .padding(8)
                 Text(formattedDate)
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(.white)
+                Spacer()
             }
             
             // Fortune bubble
@@ -52,12 +52,13 @@ struct DailyBannerView: View {
                     .font(.body)
                     .foregroundStyle(.black.opacity(0.95))
                     .fixedSize(horizontal: false, vertical: true)
+                Spacer()
             }
             .padding(12)
             .background(.white.opacity(0.5))
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             
-            // Lucky / Avoid – Chips (with pretty palette icons)
+            // Lucky / Avoid – Chips
             HStack(spacing: 10) {
                 ColorChip(
                     title: language.localized("สีมงคล", "Lucky Color"),
@@ -71,7 +72,7 @@ struct DailyBannerView: View {
                     )
                 )
                 ColorChip(
-                    title: language.localized("ห้ามใช้สี", "Avoid Color"),
+                    title: language.localized("สีห้าม", "Avoid Color"),
                     value: colorInfo.bad,
                     swatch: swatchColor(from: colorInfo.bad) ?? .white,
                     icon: AnyView(
@@ -81,9 +82,11 @@ struct DailyBannerView: View {
                             .font(.system(size: 14, weight: .semibold))
                     )
                 )
+                Spacer()
             }
         }
         .padding(16)
+        .frame(maxWidth: .infinity) // 👈 ทำให้เต็มความกว้าง
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .fill(gradient)
@@ -93,10 +96,9 @@ struct DailyBannerView: View {
                 .stroke(.white.opacity(0.08), lineWidth: 1)
         )
         .shadow(color: .black.opacity(0.12), radius: 10, y: 6)
-        .frame(maxWidth:.infinity)
     }
     
-    // แปลงชื่อสี -> Color (รองรับไทย/อังกฤษยอดนิยม)
+    // MARK: - Helper
     private func swatchColor(from name: String) -> Color? {
         let n = name.lowercased()
         let map: [(keys: [String], color: Color)] = [
@@ -120,8 +122,7 @@ struct DailyBannerView: View {
     }
 }
 
-// MARK: - ColorChip (icon = AnyView เพื่อใช้ palette/hierarchical ได้)
-
+// MARK: - ColorChip
 private struct ColorChip: View {
     let title: String
     let value: String

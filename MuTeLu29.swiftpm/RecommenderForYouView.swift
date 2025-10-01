@@ -15,14 +15,11 @@ struct RecommenderForYouView: View {
         ScrollView {
             VStack(spacing: 20) {
                 // Header
+                BackButton()
                 HStack {
-                    Button { flowManager.currentScreen = .home } label: {
-                        Image(systemName: "chevron.left").font(.headline).padding(8)
-                    }
-                    
                     Text(language.localized("สำหรับคุณ", "For You"))
                         .font(.title2.bold())
-                    Spacer().frame(width: 44)
+                            //.frame(width: 44)
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 8)

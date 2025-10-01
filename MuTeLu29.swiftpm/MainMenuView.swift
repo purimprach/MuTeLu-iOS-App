@@ -2,16 +2,14 @@ import SwiftUI
 import CoreLocation
 import MapKit    
 
-// MARK: - MainMenuView (Clean)
+// MARK: - MainMenuView
 struct MainMenuView: View {
-    // INPUTS
     @Binding var showBanner: Bool
     @EnvironmentObject var language: AppLanguage
-    @EnvironmentObject var checkInStore: CheckInStore         // ✅ ใช้คำนวณแต้มบุญ
+    @EnvironmentObject var checkInStore: CheckInStore
     var currentMember: Member?
     var flowManager: MuTeLuFlowManager
     
-    /// data ที่คำนวณมาจาก HomeView แล้ว (อย่าให้ MainMenuView คิดเอง จะรก)
     var nearest: [(place: SacredPlace, distance: CLLocationDistance)]
     var topRated: [SacredPlace]
     
@@ -25,48 +23,10 @@ struct MainMenuView: View {
                 BannerStack(showBanner: $showBanner, currentMember: currentMember)
                     .environmentObject(language)
                 
-                // 3) Near you (show 1, see all -> .recommendation)
-                MiniSection(
-                    title: language.localized("อยู่ใกล้คุณ", "Near You"),
-                    icon: "location.fill",
-                    seeAllTitle: language.localized("ดูทั้งหมด", "See all"),
-                    seeAllAction: { flowManager.currentScreen = .recommendation }
-                ) {
-                    if let first = nearest.first {
-                        PlaceMiniCard(
-                            title: language.localized(first.place.nameTH, first.place.nameEN),
-                            subtitle: language.localized("ห่าง \(formatDistance(first.distance))",
-                                                         "\(formatDistance(first.distance, locale: Locale(identifier: "en_US"))) away"),
-                            buttonTitle: language.localized("รายละเอียดสถานที่", "View details"),
-                            buttonAction: { flowManager.currentScreen = .sacredDetail(place: first.place) }
-                        )
-                    }
-                }
+                // 🔄 รวม NearYou + TopReviews
+                PlaceSection(nearest: nearest, topRated: topRated, flowManager: flowManager)
+                    .environmentObject(language)
                 
-                // 4) Top rated (show 1, see all -> .recommendation)
-                MiniSection(
-                    title: language.localized("รีวิวเยอะ", "Top Reviews"),
-                    icon: "star.fill",
-                    seeAllTitle: language.localized("ดูทั้งหมด", "See all"),
-                    seeAllAction: { flowManager.currentScreen = .recommendation }
-                ) {
-                    if let first = topRated.first {
-                        Card {
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text(language.localized(first.nameTH, first.nameEN))
-                                    .font(.subheadline).bold()
-                                    .foregroundStyle(Color(.label))
-                                StarRatingView(rating: first.rating)
-                                PrimaryButton(
-                                    title: language.localized("รายละเอียดสถานที่", "View details"),
-                                    color: .blue
-                                ) { flowManager.currentScreen = .sacredDetail(place: first) }
-                            }
-                        }
-                    }
-                }
-                
-                // 5) Quick actions grid (ไว้ท้าย ๆ)
                 QuickActionsGrid(flowManager: flowManager)
                     .environmentObject(language)
             }
@@ -80,41 +40,26 @@ struct MainMenuView: View {
         .background(Color(.systemGroupedBackground))
     }
     
-    // MARK: Header
     private var header: some View {
         GreetingHeaderCardPro(
             name: currentMember?.fullName,
             email: currentMember?.email,
             subtitle: language.localized("ยินดีต้อนรับกลับ", "Welcome back"),
             meritPoints: checkInStore.records(for: currentMember?.email ?? "").reduce(0) { $0 + $1.meritPoints },
-            onProfile: { /* TODO: ใส่จอโปรไฟล์จริงเมื่อพร้อม */ },
-            onScan:    { /* TODO: ใส่จอสแกนจริงเมื่อพร้อม */ },
-            onMap:     { flowManager.currentScreen = .recommendation }
+            onProfile: {}
         )
         .environmentObject(language)
     }
-    
-    // helper
-    func formatDistance(_ meters: CLLocationDistance, locale: Locale = Locale(identifier: "th_TH")) -> String {
-        let f = MKDistanceFormatter()
-        f.unitStyle = .abbreviated
-        f.locale = locale
-        return f.string(fromDistance: meters)
-    }
 }
 
-// MARK: - Greeting Header (Pro)
+// MARK: - GreetingHeaderCardPro
 struct GreetingHeaderCardPro: View {
     @EnvironmentObject var language: AppLanguage
-    
     var name: String?
     var email: String?
     var subtitle: String
     var meritPoints: Int = 0
-    
     var onProfile: () -> Void
-    var onScan: () -> Void
-    var onMap: () -> Void
     
     private var displayName: String {
         name?.isEmpty == false ? name! : language.localized("ผู้ใช้รับเชิญ", "Guest user")
@@ -125,12 +70,9 @@ struct GreetingHeaderCardPro: View {
     
     var body: some View {
         ZStack {
-            // gradient + soft blobs
             RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(
-                    LinearGradient(colors: [.purple.opacity(0.95), .indigo.opacity(0.9)],
-                                   startPoint: .topLeading, endPoint: .bottomTrailing)
-                )
+                .fill(LinearGradient(colors: [.purple.opacity(0.95), .indigo.opacity(0.9)],
+                                     startPoint: .topLeading, endPoint: .bottomTrailing))
             Circle().fill(Color.white.opacity(0.12))
                 .frame(width: 160, height: 160)
                 .blur(radius: 20)
@@ -140,20 +82,19 @@ struct GreetingHeaderCardPro: View {
                 .blur(radius: 18)
                 .offset(x: -140, y: 60)
             
-            // content
             VStack(alignment: .leading, spacing: 14) {
                 HStack(alignment: .top, spacing: 12) {
-                    // Avatar with initials from email
                     ZStack {
                         Circle()
-                            .fill(LinearGradient(colors: [.pink, .orange],
-                                                 startPoint: .topLeading, endPoint: .bottomTrailing))
+                            .fill(LinearGradient(colors: [.blue, .orange],
+                                                 startPoint: .topLeading,
+                                                 endPoint: .bottomTrailing))
                         Text(initials)
                             .font(.headline.bold())
                             .foregroundStyle(.white)
                     }
                     .frame(width: 56, height: 56)
-                    .overlay(Circle().stroke(.white.opacity(0.6), lineWidth: 2))
+                    .overlay(Circle().stroke(.white.opacity(0.8), lineWidth: 2))
                     
                     VStack(alignment: .leading, spacing: 4) {
                         Text(displayName)
@@ -165,38 +106,17 @@ struct GreetingHeaderCardPro: View {
                     }
                     
                     Spacer()
-                    
-                    // Notification / Profile button
-                    HStack(spacing: 8) {
-                        IconCapsule(system: "bell.fill")
-                        IconCapsule(system: "person.crop.circle.fill", action: onProfile)
-                    }
                 }
                 
-                // pills: points + email (ถ้ามี)
                 HStack(spacing: 8) {
-                    Pill(
-                        icon: "star.fill",
-                        text: language.localized("แต้มบุญ", "Merit") + " \(meritPoints)",
-                        bg: .orange
-                    )
                     if let email, !email.isEmpty {
-                        Pill(icon: "envelope.fill", text: email, bg: .blue)
+                        Pill(icon: "envelope.fill", text: email, bg: .black)
                             .lineLimit(1)
                             .truncationMode(.middle)
                     }
-                }
-                
-                // quick actions
-                HStack(spacing: 10) {
-                    QuickButton(title: language.localized("สแกนเช็คอิน", "Scan Check-in"),
-                                system: "qrcode.viewfinder",
-                                color: .green,
-                                action: onScan)
-                    QuickButton(title: language.localized("แผนที่สถานที่", "Nearby Map"),
-                                system: "map.fill",
-                                color: .cyan,
-                                action: onMap)
+                    Pill(icon: "star.fill",
+                         text: language.localized("แต้มบุญ", "Merit") + " \(meritPoints)",
+                         bg: .orange)
                 }
             }
             .padding(16)
@@ -209,23 +129,158 @@ struct GreetingHeaderCardPro: View {
     }
 }
 
-// MARK: - Small building blocks
-private struct IconCapsule: View {
-    var system: String
-    var action: (() -> Void)? = nil
+// MARK: - PlaceSection (รวม NearYou + TopReviews)
+private struct PlaceSection: View {
+    @EnvironmentObject var language: AppLanguage
+    var nearest: [(place: SacredPlace, distance: CLLocationDistance)]
+    var topRated: [SacredPlace]
+    var flowManager: MuTeLuFlowManager
+    
+    @State private var selectedTab = 0
+    @State private var pageNear = 0
+    @State private var pageTop  = 0
+    
     var body: some View {
-        Button(action: { action?() }) {
-            Image(systemName: system)
-                .symbolRenderingMode(.palette)
-                .foregroundStyle(.white, .white.opacity(0.55))
-                .padding(8)
-                .background(.white.opacity(0.12))
-                .clipShape(Capsule())
+        VStack(alignment: .leading, spacing: 12) {
+            // Segmented switcher
+            Picker("", selection: $selectedTab) {
+                Text(language.localized("อยู่ใกล้คุณ", "Near You")).tag(0)
+                Text(language.localized("รีวิวเยอะ", "Top Reviews")).tag(1)
+            }
+            .pickerStyle(.segmented)
+            
+            // แสดง TabView เฉพาะแท็บที่เลือก (กัน tag ซ้ำ)
+            if selectedTab == 0 {
+                if nearest.isEmpty {
+                    EmptyStateView(
+                        icon: "location.slash.fill",
+                        text: language.localized("กำลังค้นหาสถานที่ใกล้คุณ...", "Finding places near you...")
+                    )
+                    .frame(maxWidth: .infinity, minHeight: 160)
+                } else {
+                    TabView(selection: $pageNear) {
+                        ForEach(Array(nearest.prefix(3).enumerated()), id: \.offset) { idx, item in
+                            PlaceCard(
+                                title: language.localized(item.place.nameTH, item.place.nameEN),
+                                subtitle: language.localized(
+                                    "🚙  ห่าง \(formatDistance(item.distance))",
+                                    "🚙  \(formatDistance(item.distance, locale: Locale(identifier: "en_US"))) away"
+                                ),
+                                buttonTitle: language.localized("รายละเอียดสถานที่", "View details"),
+                                buttonAction: { flowManager.currentScreen = .sacredDetail(place: item.place) }
+                            )
+                            .padding(.bottom, 22) // กันจุด indicator ทับปุ่ม
+                            .tag(idx)
+                        }
+                    }
+                    .tabViewStyle(PageTabViewStyle(indexDisplayMode: .automatic))
+                    .frame(height: 190)
+                }
+            } else {
+                if topRated.isEmpty {
+                    EmptyStateView(
+                        icon: "star.slash.fill",
+                        text: language.localized("ไม่พบสถานที่แนะนำ", "No recommended places found")
+                    )
+                    .frame(maxWidth: .infinity, minHeight: 160)
+                } else {
+                    TabView(selection: $pageTop) {
+                        ForEach(Array(topRated.prefix(3).enumerated()), id: \.offset) { idx, place in
+                            PlaceCard(
+                                title: language.localized(place.nameTH, place.nameEN),
+                                subtitle: String(
+                                    format: language.localized("⭐⭐⭐ คะแนน %.1f / 5", "Rating %.1f / 5"),
+                                    place.rating
+                                ),
+                                buttonTitle: language.localized("รายละเอียดสถานที่", "View details"),
+                                buttonAction: { flowManager.currentScreen = .sacredDetail(place: place) }
+                            )
+                            .padding(.bottom, 22) // กันจุด indicator ทับปุ่ม
+                            .tag(idx)
+                        }
+                    }
+                    .tabViewStyle(PageTabViewStyle(indexDisplayMode: .automatic))
+                    .frame(height: 190)
+                }
+            }
         }
-        .buttonStyle(.plain)
+        .animation(.easeInOut, value: selectedTab)
+    }
+    
+    private func formatDistance(_ meters: CLLocationDistance,
+                                locale: Locale = Locale(identifier: "th_TH")) -> String {
+        let f = MKDistanceFormatter()
+        f.unitStyle = .abbreviated
+        f.locale = locale
+        return f.string(fromDistance: meters)
     }
 }
 
+// การ์ดสถานที่ (ใช้ Card/PrimaryButton ที่คุณมีอยู่)
+private struct PlaceCard: View {
+    let title: String
+    let subtitle: String
+    let buttonTitle: String
+    let buttonAction: () -> Void
+    
+    var body: some View {
+        Card {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Text("🕍")
+                    Text(title)
+                        .font(.subheadline).bold()
+                        .foregroundStyle(Color(.label))
+                        .lineLimit(2)
+                }
+                Text(subtitle)
+                    .font(.subheadline)
+                    .foregroundStyle(.brown)
+                
+                PrimaryButton(title: buttonTitle, color: .purple, action: buttonAction)
+            }
+        }
+    }
+}
+
+// สถานะว่าง
+private struct EmptyStateView: View {
+    let icon: String
+    let text: String
+    
+    var body: some View {
+        VStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.title2)
+                .foregroundStyle(.secondary)
+            Text(text)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding()
+        .background(Color(.secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+}
+
+// MARK: - Banner stack
+private struct BannerStack: View {
+    @Binding var showBanner: Bool
+    @EnvironmentObject var language: AppLanguage
+    var currentMember: Member?
+    
+    var body: some View {
+        VStack(spacing: 12) {
+            if showBanner {
+                DailyBannerView(member: currentMember)
+                    .environmentObject(language)
+            }
+        }
+    }
+}
+
+// MARK: - Pill
 private struct Pill: View {
     var icon: String
     var text: String
@@ -245,103 +300,66 @@ private struct Pill: View {
     }
 }
 
-private struct QuickButton: View {
-    var title: String
-    var system: String
-    var color: Color
-    var action: () -> Void
+// MARK: - Card
+struct Card<Content: View>: View {
+    @Environment(\.colorScheme) private var scheme
+    let content: Content
+    init(@ViewBuilder content: () -> Content) { self.content = content() }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) { content }
+            .padding()
+            .frame(maxWidth: .infinity)
+            .background(Color(.secondarySystemBackground))
+            .cornerRadius(16)
+            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color(.separator), lineWidth: 0.5))
+            .shadow(color: .black.opacity(scheme == .dark ? 0.15 : 0.25),
+                    radius: scheme == .dark ? 4 : 8, x: 0, y: 3)
+    }
+}
+
+// MARK: - PrimaryButton
+private struct PrimaryButton: View {
+    let title: String
+    let color: Color
+    let action: () -> Void
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 8) {
-                Image(systemName: system)
-                    .symbolRenderingMode(.palette)
-                    .foregroundStyle(.white, .white.opacity(0.5))
-                Text(title).foregroundStyle(.white)
-                    .font(.subheadline.weight(.semibold))
+            Text(title).fontWeight(.bold)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 9)
+                .background(color.opacity(0.95))
+                .foregroundColor(.white)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+        }
+    }
+}
+
+// MARK: - StarRatingView
+struct StarRatingView: View {
+    let rating: Double
+    let maxStars: Int = 5
+    let showText: Bool = true
+    var body: some View {
+        HStack(spacing: 6) {
+            HStack(spacing: 2) {
+                ForEach(0..<maxStars, id: \.self) { i in
+                    let threshold = Double(i) + 1
+                    if rating >= threshold { Image(systemName: "star.fill") }
+                    else if rating >= threshold - 0.5 { Image(systemName: "star.leadinghalf.filled") }
+                    else { Image(systemName: "star") }
+                }
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 10)
-            .background(color.opacity(0.28))
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-        }
-        .buttonStyle(.plain)
-    }
-}
-
-// MARK: - Banner stack (รวม 3 แบนเนอร์ให้เรียบร้อย)
-private struct BannerStack: View {
-    @Binding var showBanner: Bool
-    @EnvironmentObject var language: AppLanguage
-    var currentMember: Member?
-    
-    var body: some View {
-        VStack(spacing: 12) {
-            if showBanner {
-                DailyBannerView(member: currentMember)
-                    .environmentObject(language)
-                // เพิ่ม/เปิดตัวอื่น ๆ ได้ภายหลัง
-            }
-        }
-    }
-}
-
-// MARK: - Section with header + trailing action
-private struct MiniSection<Content: View>: View {
-    let title: String
-    let icon: String
-    let seeAllTitle: String
-    let seeAllAction: () -> Void
-    @ViewBuilder let content: () -> Content   // ✅ ใส่ @ViewBuilder
-    
-    var body: some View {
-        VStack(spacing: 8) {
-            SectionHeader(title: title, icon: icon, actionTitle: seeAllTitle, action: seeAllAction)
-            content()  // ✅ เรียก closure
-        }
-    }
-}
-
-private struct SectionHeader: View {
-    let title: String
-    let icon: String
-    let actionTitle: String
-    let action: () -> Void
-    
-    var body: some View {
-        HStack {
-            Label(title, systemImage: icon)
-                .font(.headline)
-                .foregroundStyle(Color(.label))
-            Spacer()
-            Button(actionTitle, action: action)
-                .font(.subheadline)
-        }
-        .padding(.horizontal, 4)
-    }
-}
-
-// MARK: - Small place card used in sections
-private struct PlaceMiniCard: View {
-    let title: String
-    let subtitle: String
-    let buttonTitle: String
-    let buttonAction: () -> Void
-    
-    var body: some View {
-        Card {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(title)
-                    .font(.subheadline).bold()
-                    .foregroundStyle(Color(.label))
-                Text(subtitle)
+            .foregroundStyle(.orange)
+            .symbolRenderingMode(.hierarchical)
+            .font(.caption)
+            if showText {
+                Text(String(format: "(%.1f / 5)", min(max(rating, 0), 5)))
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                PrimaryButton(title: buttonTitle, color: .green, action: buttonAction)
             }
         }
     }
 }
-
 // MARK: - Quick actions grid (เก็บรวมท้ายหน้า)
 private struct QuickActionsGrid: View {
     @EnvironmentObject var language: AppLanguage
@@ -349,7 +367,8 @@ private struct QuickActionsGrid: View {
     @State private var showAll = false
     
     private var items: [(th: String, en: String, icon: String, screen: MuTeLuScreen)] {
-        [   ("แนะนำสถานที่ศักดิ์สิทธิ์สำหรับคุณ","Recommended for You","wand.and.stars",.recommenderForYou),
+        [
+            ("แนะนำสถานที่ศักดิ์สิทธิ์สำหรับคุณ","Recommended for You","wand.and.stars",.recommenderForYou),
             ("แนะนำสถานที่ศักดิ์สิทธิ์รอบจุฬาฯ","Sacred Places around Chula","building.columns", .recommendation),
             ("ทำนายเบอร์โทร","Phone Fortune","phone.circle", .phoneFortune),
             ("สีเสื้อประจำวัน","Shirt Color","tshirt", .shirtColor),
@@ -381,81 +400,16 @@ private struct QuickActionsGrid: View {
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                 ForEach(visible.indices, id: \.self) { i in
                     let it = visible[i]
-                    MenuButton(titleTH: it.th, titleEN: it.en, image: it.icon, screen: it.screen)
-                        .environmentObject(language)
-                        .environmentObject(flowManager)
+                    MenuButton(
+                        titleTH: it.th,
+                        titleEN: it.en,
+                        image: it.icon,
+                        screen: it.screen
+                    )
+                    .environmentObject(language)
+                    .environmentObject(flowManager)
                 }
             }
         }
     }
 }
-
-// MARK: - Shared UI pieces
-struct Card<Content: View>: View {
-    @Environment(\.colorScheme) private var scheme
-    let content: Content
-    
-    init(@ViewBuilder content: () -> Content) {
-        self.content = content()
-    }
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            content
-        }
-        .padding()
-        .frame(maxWidth: .infinity)
-        .background(Color(.secondarySystemBackground))
-        .cornerRadius(16)
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(Color(.separator), lineWidth: 0.5)
-        )
-        .shadow(color: .black.opacity(scheme == .dark ? 0.15 : 0.25),
-                radius: scheme == .dark ? 4 : 8, x: 0, y: 3)
-    }
-}
-
-private struct PrimaryButton: View {
-    let title: String
-    let color: Color
-    let action: () -> Void
-    var body: some View {
-        Button(action: action) {
-            Text(title).fontWeight(.bold)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 9)
-                .background(color.opacity(0.95))
-                .foregroundColor(.white)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-        }
-    }
-}
-
-// (คง StarRatingView ของคุณไว้ใช้ซ้ำได้เลย)
-struct StarRatingView: View {
-    let rating: Double
-    let maxStars: Int = 5
-    let showText: Bool = true
-    var body: some View {
-        HStack(spacing: 6) {
-            HStack(spacing: 2) {
-                ForEach(0..<maxStars, id: \.self) { i in
-                    let threshold = Double(i) + 1
-                    if rating >= threshold { Image(systemName: "star.fill") }
-                    else if rating >= threshold - 0.5 { Image(systemName: "star.leadinghalf.filled") }
-                    else { Image(systemName: "star") }
-                }
-            }
-            .foregroundStyle(.orange)
-            .symbolRenderingMode(.hierarchical)
-            .font(.caption)
-            if showText {
-                Text(String(format: "(%.1f / 5)", min(max(rating, 0), 5)))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-        }
-    }
-}
-
