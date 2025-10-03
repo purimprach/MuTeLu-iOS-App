@@ -15,6 +15,7 @@ struct SacredPlaceDetailView: View {
     @State private var refreshTrigger = UUID()
     @State private var countdownTimer: Timer?
     @State private var timeRemaining: TimeInterval = 0
+    @EnvironmentObject var likeStore: LikeStore
     
     @State private var isLiked: Bool = false
     
@@ -36,10 +37,9 @@ struct SacredPlaceDetailView: View {
                     .bold()
                 }
                 
-                // 👇 --- ส่วน UI ที่ปรับปรุงใหม่ ---
                 VStack(alignment: .leading, spacing: 10) {
                     HStack(alignment: .top) {
-                        // ชื่อสถานที่ (ชิดซ้าย)
+                        // ชื่อสถานที่
                         Text(language.localized(place.nameTH, place.nameEN))
                             .font(.title2)
                             .fontWeight(.bold)
@@ -47,17 +47,20 @@ struct SacredPlaceDetailView: View {
                         
                         Spacer()
                         
-                        // ปุ่มไลค์ (ขยายขนาดและเพิ่ม Animation)
+                        // --- 2. แก้ไขปุ่ม Like ---
                         Button(action: {
-                            memberStore.toggleLike(for: loggedInEmail, place: place)
+                            // สั่งให้ likeStore ทำงาน
+                            likeStore.toggleLike(placeID: place.id.uuidString, for: loggedInEmail)
+                            
+                            // อัปเดตสถานะของปุ่ม
                             withAnimation(.spring(response: 0.4, dampingFraction: 0.5)) {
                                 isLiked.toggle()
                             }
                         }) {
                             Image(systemName: isLiked ? "heart.fill" : "heart")
-                                .font(.title) // ขยายขนาดไอคอน
+                                .font(.title)
                                 .foregroundColor(isLiked ? .red : .gray)
-                                .scaleEffect(isLiked ? 1.1 : 1.0)
+                                .scaleEffect(isLiked ? 1.2 : 1.0) // เพิ่ม Animation ให้ดูมีชีวิตชีวา
                         }
                     }
                     
@@ -239,13 +242,14 @@ struct SacredPlaceDetailView: View {
                 .environmentObject(language)
         }
         .onAppear {
-            isLiked = memberStore.isLiked(by: loggedInEmail, placeID: place.id)
+            isLiked = likeStore.isLiked(placeID: place.id.uuidString, by: loggedInEmail)
             startCountdownTimer()
         }
         .onDisappear {
-            stopCountdownTimer()
+            stopCountdownTimer() 
         }
-    }
+    } // <-- ปีกกาปิด body อยู่ตรงนี้
+    
     
     func isUserNearPlace() -> Bool {
         guard let userLocation = locationManager.userLocation else {
@@ -337,3 +341,4 @@ struct ExpandableTextView: View {
         }
     }
 }
+

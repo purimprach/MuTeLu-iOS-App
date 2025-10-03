@@ -7,17 +7,21 @@ struct RecommendationView: View {
     @EnvironmentObject var language: AppLanguage
     @EnvironmentObject var flowManager: MuTeLuFlowManager
     @EnvironmentObject var locationManager: LocationManager
+    @EnvironmentObject var likeStore: LikeStore
     @AppStorage("loggedInEmail") var loggedInEmail: String = ""
     
-    // State สำหรับเก็บผลลัพธ์การแนะนำ
-    @State private var recommendedPlaces: [SacredPlace] = []
-    @State private var sourcePlaceName: String? = nil
+    // @State สำหรับเก็บผลลัพธ์การแนะนำ (ชุดใหม่)
+    @State private var likedRecommendedPlaces: [SacredPlace] = []
+    @State private var checkInRecommendedPlaces: [SacredPlace] = []
+    @State private var likeSourcePlaceName: String?
+    @State private var checkInSourcePlaceName: String?
     
     // State ใหม่สำหรับเก็บ "ระยะทางขับรถจริง" ที่คำนวณแล้ว
     @State private var routeDistances: [UUID: CLLocationDistance] = [:]
     
     var body: some View {
         ScrollView {
+            // ... ในไฟล์ RecommendationView.swift ...
             VStack(alignment: .leading, spacing: 16) {
                 BackButton()
                 
@@ -27,34 +31,42 @@ struct RecommendationView: View {
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
                 
-                // Section "เพราะคุณเพิ่งไป"
-                if !recommendedPlaces.isEmpty, let sourceName = sourcePlaceName {
+                // --- Section 1: แนะนำจาก "การชอบ" ---
+                if !likedRecommendedPlaces.isEmpty, let sourceName = likeSourcePlaceName {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text(language.localized("เพราะคุณเพิ่งไป: \(sourceName)", "Because you recently visited: \(sourceName)"))
+                        Text(language.localized("เพราะคุณชอบ: \(sourceName)", "Because you liked: \(sourceName)"))
                             .font(.headline)
                             .padding(.horizontal)
                         
-                        ForEach(recommendedPlaces) { place in
-                            PlaceRow(
-                                place: place,
-                                routeDistance: routeDistances[place.id]
-                            )
+                        ForEach(likedRecommendedPlaces) { place in
+                            PlaceRow(place: place, routeDistance: routeDistances[place.id])
                         }
                     }
                     Divider().padding()
                 }
                 
-                // Section "สถานที่ทั้งหมด"
+                // --- Section 2: แนะนำจาก "การเช็คอินล่าสุด" ---
+                if !checkInRecommendedPlaces.isEmpty, let sourceName = checkInSourcePlaceName {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(language.localized("เพราะคุณเพิ่งไป: \(sourceName)", "Because you recently visited: \(sourceName)"))
+                            .font(.headline)
+                            .padding(.horizontal)
+                        
+                        ForEach(checkInRecommendedPlaces) { place in
+                            PlaceRow(place: place, routeDistance: routeDistances[place.id])
+                        }
+                    }
+                    Divider().padding()
+                }
+                
+                // Section "สถานที่ทั้งหมด" (เหมือนเดิม)
                 VStack(alignment: .leading, spacing: 8) {
                     Text(language.localized("สถานที่ทั้งหมด", "All Places"))
                         .font(.headline)
                         .padding(.horizontal)
                     
                     ForEach(viewModel.places) { place in
-                        PlaceRow(
-                            place: place,
-                            routeDistance: routeDistances[place.id]
-                        )
+                        PlaceRow(place: place, routeDistance: routeDistances[place.id])
                     }
                 }
             }
@@ -95,20 +107,39 @@ struct RecommendationView: View {
         self.routeDistances = newDistances
     }
     
-    // ฟังก์ชันสร้างคำแนะนำ (เหมือนเดิม)
     private func generateRecommendations() {
-        guard let latestCheckIn = checkInStore.records(for: loggedInEmail).sorted(by: { $0.date > $1.date }).first,
-              let sourcePlace = viewModel.places.first(where: { $0.id.uuidString == latestCheckIn.placeID }) else {
-            self.recommendedPlaces = []
-            self.sourcePlaceName = nil
-            return
+        let engine = RecommendationEngine(places: viewModel.places)
+        let allVisitedIDs = checkInStore.records(for: loggedInEmail).map { UUID(uuidString: $0.placeID) }.compactMap { $0 }
+        
+        // --- 1. สร้างคำแนะนำจาก "การชอบ" ---
+        let userLikes = likeStore.likes.filter { $0.memberEmail == loggedInEmail }
+        if let latestLikedRecord = userLikes.last,
+           let sourcePlace = viewModel.places.first(where: { $0.id.uuidString == latestLikedRecord.placeID }) {
+            
+            self.likedRecommendedPlaces = engine.getRecommendations(basedOn: sourcePlace, excluding: allVisitedIDs)
+            self.likeSourcePlaceName = language.localized(sourcePlace.nameTH, sourcePlace.nameEN)
+        } else {
+            // ถ้าไม่เคย Like เลย ก็เคลียร์ค่าทิ้ง
+            self.likedRecommendedPlaces = []
+            self.likeSourcePlaceName = nil
         }
         
-        let engine = RecommendationEngine(places: viewModel.places)
-        let visitedIDs = checkInStore.records(for: loggedInEmail).map { UUID(uuidString: $0.placeID) }.compactMap { $0 }
-        
-        self.recommendedPlaces = engine.getRecommendations(basedOn: sourcePlace, excluding: visitedIDs)
-        self.sourcePlaceName = language.localized(sourcePlace.nameTH, sourcePlace.nameEN)
+        // --- 2. สร้างคำแนะนำจาก "การเช็คอิน" ---
+        let userCheckIns = checkInStore.records(for: loggedInEmail).sorted(by: { $0.date > $1.date })
+        if let latestCheckIn = userCheckIns.first,
+           let sourcePlace = viewModel.places.first(where: { $0.id.uuidString == latestCheckIn.placeID }) {
+            
+            // **Pro Tip:** ตอนหาคำแนะนำจาก Check-in ให้ Exclude สถานที่ที่แนะนำไปแล้วใน List ของ Like
+            // เพื่อไม่ให้มีสถานที่ซ้ำกันใน 2 Section
+            let idsToExclude = allVisitedIDs + likedRecommendedPlaces.map { $0.id }
+            
+            self.checkInRecommendedPlaces = engine.getRecommendations(basedOn: sourcePlace, excluding: idsToExclude)
+            self.checkInSourcePlaceName = language.localized(sourcePlace.nameTH, sourcePlace.nameEN)
+        } else {
+            // ถ้าไม่เคย Check-in เลย ก็เคลียร์ค่าทิ้ง
+            self.checkInRecommendedPlaces = []
+            self.checkInSourcePlaceName = nil
+        }
     }
 }
 
