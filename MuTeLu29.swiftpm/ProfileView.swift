@@ -83,25 +83,42 @@ struct ProfileView: View {
                         .foregroundColor(.red)
                         .padding()
                 }
+                // ... ในไฟล์ ProfileView.swift ...
                 
-                Divider()
-                SectionTitle(titleTH: "ตั้งค่า", titleEN: "Settings")
-                Toggle(isOn: Binding(
-                    get: { language.isDarkMode },
-                    set: { language.isDarkMode = $0 }
-                )) {
-                    Label(language.localized("โหมดมืด", "Dark Mode"), systemImage: "moon")
-                }
-                .padding(.horizontal)
+                Divider() // เส้นคั่นก่อน Section ใหม่
                 
-                Toggle(isOn: Binding(
-                    get: { language.currentLanguage == "en" },
-                    set: { _ in language.toggleLanguage() }
-                )) {
-                    Label(language.localized("ภาษาอังกฤษ", "English Language"), systemImage: "globe")
+                // --- 👇 แทนที่โค้ดเก่าด้วย Section ใหม่นี้ทั้งหมด ---
+                Section {
+                    // 1. ปุ่ม "สถานที่ที่บันทึกไว้"
+                    Button(action: {
+                        flowManager.currentScreen = .bookmarks
+                    }) {
+                        // ทำให้เหมือนแถวใน List และมี > ด้านหลัง
+                        HStack {
+                            Label(language.localized("สถานที่ที่บันทึกไว้", "Bookmarked Places"), systemImage: "bookmark.fill")
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(.secondary.opacity(0.5))
+                        }
+                    }
+                    
+                    // 2. Toggle "โหมดมืด"
+                    Toggle(isOn: $language.isDarkMode) {
+                        Label(language.localized("โหมดมืด", "Dark Mode"), systemImage: "moon")
+                    }
+                    
+                    // 3. Toggle "ภาษาอังกฤษ"
+                    Toggle(isOn: Binding(
+                        get: { language.currentLanguage == "en" },
+                        set: { _ in language.toggleLanguage() }
+                    )) {
+                        Label(language.localized("ภาษาอังกฤษ", "English Language"), systemImage: "globe")
+                    }
                 }
+                .foregroundColor(.primary) // ทำให้สีตัวหนังสือเป็นสีปกติ
                 .padding(.horizontal)
-                .tint(.purple)
+                .tint(.purple) // ทำให้สีของ Toggle และไอคอนเป็นสีม่วงสวยงาม
+                
                 
                 // 🔓 Logout
                 Spacer(minLength: 24)

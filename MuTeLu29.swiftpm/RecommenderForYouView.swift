@@ -1,12 +1,21 @@
 import SwiftUI
 import CoreLocation
+import Combine
 
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// MARK: - Main View: RecommenderForYouView
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 struct RecommenderForYouView: View {
     @EnvironmentObject var language: AppLanguage
     @EnvironmentObject var flowManager: MuTeLuFlowManager
     @EnvironmentObject private var memberStore: MemberStore
+    
+    // --- 1. เพิ่ม Stores ที่จำเป็น ---
+    @EnvironmentObject private var bookmarkStore: BookmarkStore
+    @StateObject private var sacredPlaceViewModel = SacredPlaceViewModel()
+    
     @AppStorage("loggedInEmail") private var loggedInEmail: String = ""
-    @StateObject private var loc = LocationProvider()   // <<<<
+    @StateObject private var loc = LocationProvider()
     
     var currentMember: Member? = nil
     private var activeMember: Member? { currentMember ?? memberStore.members.first { $0.email == loggedInEmail } }
@@ -14,20 +23,29 @@ struct RecommenderForYouView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-                // Header
+                // --- Header (เหมือนเดิม) ---
                 BackButton()
                 HStack {
                     Text(language.localized("สำหรับคุณ", "For You"))
                         .font(.title2.bold())
-                            //.frame(width: 44)
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
                 
-                //   DailyBannerView()
+                // --- Banners (เหมือนเดิม) ---
                 BuddhistDayBanner()
                 ReligiousHolidayBanner()
-                // — Hero Cards —
+                
+                // --- 2. เพิ่มการ์ด "สถานที่บันทึกไว้" เข้ามาตรงนี้ ---
+                BookmarkedPlacesCard(
+                    placesViewModel: sacredPlaceViewModel,
+                    bookmarkStore: bookmarkStore,
+                    flowManager: flowManager,
+                    loggedInEmail: loggedInEmail
+                )
+                .environmentObject(language) // ส่ง language ต่อไปให้ subview
+                
+                // --- Hero Cards (เหมือนเดิม) ---
                 Group {
                     TempleBannerCard(
                         headingTH: "แนะนำวัดเหมาะกับวันนี้",
@@ -49,6 +67,7 @@ struct RecommenderForYouView: View {
                         .environmentObject(loc)
                     } else {
                         MissingBirthdayCard { flowManager.currentScreen = .editProfile }
+                            .environmentObject(language) // ส่ง language ต่อไปให้ subview
                     }
                 }
                 
@@ -60,12 +79,13 @@ struct RecommenderForYouView: View {
         .background(Color(.systemGroupedBackground))
     }
     
-    // Helpers
+    // MARK: - Helpers (เหมือนเดิม)
     private func birthdayHeading(for member: Member?) -> (th: String, en: String)? {
         guard let bday = member?.birthdate else { return nil }
         let (th, en) = weekdayName(for: bday)
         return ("แนะนำวัดที่เหมาะกับคนเกิดวัน\(th)", "Recommended Temple for \(en)-born")
     }
+    
     private func weekdayName(for date: Date) -> (th: String, en: String) {
         let w = Calendar(identifier: .gregorian).component(.weekday, from: date)
         let th = ["อาทิตย์","จันทร์","อังคาร","พุธ","พฤหัส","ศุกร์","เสาร์"]
@@ -75,9 +95,90 @@ struct RecommenderForYouView: View {
     }
 }
 
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// MARK: - Subview: BookmarkedPlacesCard (ส่วนที่เพิ่มใหม่)
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+private struct BookmarkedPlacesCard: View {
+    @ObservedObject var placesViewModel: SacredPlaceViewModel
+    @ObservedObject var bookmarkStore: BookmarkStore
+    var flowManager: MuTeLuFlowManager
+    let loggedInEmail: String
+    
+    @EnvironmentObject var language: AppLanguage
+    
+    var bookmarkedRecords: [BookmarkRecord] {
+        bookmarkStore.getBookmarks(for: loggedInEmail)
+    }
+    
+    var body: some View {
+        if !bookmarkedRecords.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                // --- Header ของการ์ด ---
+                HStack(spacing: 8) {
+                    Image(systemName: "bookmark.fill")
+                        .foregroundColor(.blue)
+                    Text(language.localized("รายการที่บันทึกไว้", "Saved Places"))
+                    Spacer()
+                    Button(language.localized("ดูทั้งหมด", "See All")) {
+                        flowManager.currentScreen = .bookmarks
+                    }
+                    .font(.subheadline)
+                }
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(.secondary)
+                
+                // --- Horizontal Scroll View ---
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        ForEach(bookmarkedRecords) { record in
+                            if let place = placesViewModel.places.first(where: { $0.id.uuidString == record.placeID }) {
+                                BookmarkItem(place: place)
+                                    .onTapGesture {
+                                        flowManager.currentScreen = .sacredDetail(place: place)
+                                    }
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(12)
+            .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Color(.secondarySystemBackground)))
+            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Color.primary.opacity(0.06), lineWidth: 1))
+            .shadow(color: .black.opacity(0.08), radius: 6, y: 3)
+        }
+    }
+}
+
+// MARK: - Subview: BookmarkItem (ส่วนที่เพิ่มใหม่)
+private struct BookmarkItem: View {
+    let place: SacredPlace
+    @EnvironmentObject var language: AppLanguage
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing:8) {
+            Image(place.imageName)
+                .resizable()
+                .scaledToFill()
+                .frame(width: 150, height: 80)
+                .cornerRadius(10)
+                .clipped()
+            
+            Text(language.localized(place.nameTH, place.nameEN))
+                .font(.system(size: 10, weight: .bold))
+                .lineLimit(1)
+                .frame(width: 140, alignment: .center)
+        }
+    }
+}
+
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// MARK: - Subviews เดิม (ไม่มีการเปลี่ยนแปลง)
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 private struct TempleBannerCard: View {
     @EnvironmentObject var language: AppLanguage
-    @EnvironmentObject var loc: LocationProvider  // << ต้อง inject ใน parent
+    @EnvironmentObject var loc: LocationProvider
     var headingTH: String
     var headingEN: String
     var memberOverride: Member?
@@ -87,7 +188,6 @@ private struct TempleBannerCard: View {
         let temple = getRecommendedTemple(for: memberOverride)
         
         VStack(alignment: .leading, spacing: 10) {
-            // หัวข้อเล็ก ๆ ด้านบน
             HStack(spacing: 8) {
                 Image(systemName: "sparkles")
                 Text(language.localized(headingTH, headingEN))
@@ -95,14 +195,12 @@ private struct TempleBannerCard: View {
             .font(.subheadline.weight(.semibold))
             .foregroundColor(.secondary)
             
-            // Hero Image + Overlay
             ZStack(alignment: .bottomLeading) {
                 bannerImage(named: temple.imageName)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 180) // 16:9-ish
+                    .frame(height: 180)
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 
-                // Gradient ทับ + ข้อความ
                 LinearGradient(
                     colors: [Color.black.opacity(0.0), Color.black.opacity(0.55)],
                     startPoint: .center, endPoint: .bottom
@@ -111,7 +209,6 @@ private struct TempleBannerCard: View {
                 .allowsHitTesting(false)
                 
                 VStack(alignment: .leading, spacing: 6) {
-                    
                     Text(language.localized(temple.nameTH, temple.nameEN))
                         .font(.title3.weight(.bold))
                         .foregroundColor(.white)
@@ -138,8 +235,6 @@ private struct TempleBannerCard: View {
         .shadow(color: .black.opacity(0.08), radius: 6, y: 3)
     }
     
-    // MARK: helpers
-    
     @ViewBuilder
     private func bannerImage(named: String) -> some View {
         if UIImage(named: named) != nil {
@@ -161,17 +256,19 @@ private struct TempleBannerCard: View {
 }
 
 private struct MissingBirthdayCard: View {
+    @EnvironmentObject var language: AppLanguage
     var onEditProfile: () -> Void
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Label("ยังไม่มีวันเกิดในโปรไฟล์", systemImage: "calendar.badge.exclamationmark")
+            Label(language.localized("ยังไม่มีวันเกิดในโปรไฟล์", "No birthday in profile"), systemImage: "calendar.badge.exclamationmark")
                 .font(.headline)
-            Text("เพิ่มวันเกิดเพื่อรับคำแนะนำวัดที่ตรงกับวันเกิดของคุณ")
+            Text(language.localized("เพิ่มวันเกิดเพื่อรับคำแนะนำวัดที่ตรงกับวันเกิดของคุณ", "Add your birthday to get temple recommendations tailored to your weekday"))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
             
             Button(action: onEditProfile) {
-                Text("แก้ไขโปรไฟล์")
+                Text(language.localized("แก้ไขโปรไฟล์", "Edit Profile"))
                     .fontWeight(.bold)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)
@@ -187,8 +284,6 @@ private struct MissingBirthdayCard: View {
         .shadow(color: .black.opacity(0.08), radius: 6, x: 0, y: 3)
     }
 }
-import CoreLocation
-import Combine
 
 final class LocationProvider: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published var lastLocation: CLLocation?

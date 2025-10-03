@@ -11,71 +11,77 @@ struct SacredPlaceDetailView: View {
     @State private var showCheckinAlert = false
     @EnvironmentObject var checkInStore: CheckInStore
     @EnvironmentObject var memberStore: MemberStore
+    @EnvironmentObject var likeStore: LikeStore
+    @EnvironmentObject var bookmarkStore: BookmarkStore
+    
     @AppStorage("loggedInEmail") var loggedInEmail: String = ""
+    
+    @State private var isLiked: Bool = false
+    @State private var isBookmarked: Bool = false
+    
     @State private var refreshTrigger = UUID()
     @State private var countdownTimer: Timer?
     @State private var timeRemaining: TimeInterval = 0
-    @EnvironmentObject var likeStore: LikeStore
-    
-    @State private var isLiked: Bool = false
     
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 
-                // 🔙 ปุ่มย้อนกลับ
-                Button(action: {
-                    flowManager.currentScreen = .recommendation
-                }) {
+                // ปุ่มย้อนกลับ
+                Button(action: { flowManager.currentScreen = .recommendation }) {
                     HStack {
                         Image(systemName: "chevron.left")
                         Text(language.localized("ย้อนกลับ", "Back"))
                     }
-                    .font(.body)
-                    .foregroundColor(.purple)
-                    .padding(.leading)
-                    .bold()
+                    .font(.body).foregroundColor(.purple).padding(.leading).bold()
                 }
                 
+                // MARK: - Header Card
                 VStack(alignment: .leading, spacing: 10) {
                     HStack(alignment: .top) {
-                        // ชื่อสถานที่
                         Text(language.localized(place.nameTH, place.nameEN))
-                            .font(.title2)
-                            .fontWeight(.bold)
-                            .multilineTextAlignment(.leading)
+                            .font(.title2).fontWeight(.bold).multilineTextAlignment(.leading)
                         
                         Spacer()
                         
-                        // --- 2. แก้ไขปุ่ม Like ---
-                        Button(action: {
-                            // สั่งให้ likeStore ทำงาน
-                            likeStore.toggleLike(placeID: place.id.uuidString, for: loggedInEmail)
-                            
-                            // อัปเดตสถานะของปุ่ม
-                            withAnimation(.spring(response: 0.4, dampingFraction: 0.5)) {
-                                isLiked.toggle()
+                        // --- กลุ่มปุ่ม Like และ Bookmark ---
+                        HStack(spacing: 20) {
+                            // ปุ่ม Bookmark
+                            Button(action: {
+                                bookmarkStore.toggleBookmark(placeID: place.id.uuidString, for: loggedInEmail)
+                                withAnimation(.spring(response: 0.4, dampingFraction: 0.5)) {
+                                    isBookmarked.toggle()
+                                }
+                            }) {
+                                Image(systemName: isBookmarked ? "bookmark.fill" : "bookmark")
+                                    .font(.title)
+                                    .foregroundColor(isBookmarked ? .blue : .gray)
+                                    .scaleEffect(isBookmarked ? 1.2 : 1.0)
                             }
-                        }) {
-                            Image(systemName: isLiked ? "heart.fill" : "heart")
-                                .font(.title)
-                                .foregroundColor(isLiked ? .red : .gray)
-                                .scaleEffect(isLiked ? 1.2 : 1.0) // เพิ่ม Animation ให้ดูมีชีวิตชีวา
+                            
+                            // ปุ่ม Like
+                            Button(action: {
+                                likeStore.toggleLike(placeID: place.id.uuidString, for: loggedInEmail)
+                                withAnimation(.spring(response: 0.4, dampingFraction: 0.5)) {
+                                    isLiked.toggle()
+                                }
+                            }) {
+                                Image(systemName: isLiked ? "heart.fill" : "heart")
+                                    .font(.title)
+                                    .foregroundColor(isLiked ? .red : .gray)
+                                    .scaleEffect(isLiked ? 1.2 : 1.0)
+                            }
                         }
                     }
                     
-                    // ที่ตั้ง (ย้ายขึ้นมาไว้ในการ์ดเดียวกัน)
                     Label(language.currentLanguage == "th" ? place.locationTH : place.locationEN, systemImage: "mappin.and.ellipse")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .font(.subheadline).foregroundColor(.secondary)
                 }
-                .padding()
-                .background(.thinMaterial) // ใช้พื้นหลังแบบโปร่งแสง
+                .padding().background(.thinMaterial)
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .padding(.horizontal)
-                // ------------------------------------
                 
-                // ✅ กล่อง description (เหมือนเดิม)
+                // MARK: - Description
                 ExpandableTextView(
                     fullText: language.localized(place.descriptionTH, place.descriptionEN),
                     lineLimit: 5
@@ -89,7 +95,7 @@ struct SacredPlaceDetailView: View {
                 )
                 .padding(.horizontal)
                 
-                // ✅ รูปภาพ
+                // MARK: - Image
                 Image(place.imageName)
                     .resizable()
                     .scaledToFit()
@@ -97,7 +103,7 @@ struct SacredPlaceDetailView: View {
                     .cornerRadius(12)
                     .padding(.horizontal)
                 
-                // ✅ ปุ่มกดดูรายละเอียด
+                // MARK: - Buttons
                 Button(action: {
                     showDetailSheet.toggle()
                 }) {
@@ -111,7 +117,7 @@ struct SacredPlaceDetailView: View {
                 }
                 .padding(.horizontal)
                 
-                // ✅ แผนที่
+                // MARK: - Map and Actions
                 VStack(alignment: .leading, spacing: 15) {
                     MapSnapshotView(
                         latitude: place.latitude,
@@ -122,7 +128,6 @@ struct SacredPlaceDetailView: View {
                     .cornerRadius(12)
                     .padding(.horizontal)
                     
-                    // ✅ ปุ่มนำทาง
                     Button(action: {
                         openInMaps()
                     }) {
@@ -135,15 +140,13 @@ struct SacredPlaceDetailView: View {
                     }
                     .padding(.horizontal)
                     
-                    //ปุ่มเช็คอิน
+                    // Check-in Button Logic
                     VStack {
-                        // 1. เช็คว่าเคยเช็คอินที่นี่เมื่อไม่นานมานี้หรือไม่
                         if checkInStore.hasCheckedInRecently(email: loggedInEmail, placeID: place.id.uuidString) {
                             VStack(spacing: 8) {
                                 Label(language.localized("เช็คอินแล้ว", "Checked-in"), systemImage: "checkmark.seal.fill")
                                     .foregroundColor(.green)
                                 
-                                // 2. แสดงเวลาที่เหลือ
                                 if timeRemaining > 0 {
                                     Text(language.localized("เช็คอินครั้งถัดไปได้ในอีก:", "Next check-in in:"))
                                     Text(formatTime(timeRemaining))
@@ -159,9 +162,7 @@ struct SacredPlaceDetailView: View {
                             .frame(maxWidth: .infinity)
                             .background(Color.gray.opacity(0.2))
                             .cornerRadius(12)
-                        } 
-                        // 3. เช็คว่าอยู่ในระยะที่เช็คอินได้หรือไม่
-                        else if isUserNearPlace() {
+                        } else if isUserNearPlace() {
                             Button(action: {
                                 if !checkInStore.hasCheckedInRecently(email: loggedInEmail, placeID: place.id.uuidString) {
                                     let newRecord = CheckInRecord(
@@ -176,9 +177,10 @@ struct SacredPlaceDetailView: View {
                                     )
                                     checkInStore.add(record: newRecord)
                                     
+                                    // (Optional) Update tag scores
                                     if let userIndex = memberStore.members.firstIndex(where: { $0.email == loggedInEmail }) {
                                         for tag in place.tags {
-                                            memberStore.members[userIndex].tagScores[tag, default: 0] += 1
+                                              memberStore.members[userIndex].tagScores[tag, default: 0] += 1
                                         }
                                     }
                                     
@@ -200,9 +202,7 @@ struct SacredPlaceDetailView: View {
                                     dismissButton: .default(Text(language.localized("ตกลง", "OK")))
                                 )
                             }
-                        } 
-                        // 4. กรณีที่อยู่นอกระยะ
-                        else {
+                        } else {
                             Text("📍 \(language.localized("คุณยังอยู่ไกลเกินกว่าจะเช็คอินได้", "You are too far to check-in"))")
                                 .foregroundColor(.gray)
                                 .padding()
@@ -214,7 +214,7 @@ struct SacredPlaceDetailView: View {
                     .padding(.horizontal)
                     .id(refreshTrigger)
                     
-                    // ✅ ปุ่มติดต่อ
+                    // Contact Button
                     Button(action: {
                         showContactOptions = true
                     }) {
@@ -243,14 +243,15 @@ struct SacredPlaceDetailView: View {
         }
         .onAppear {
             isLiked = likeStore.isLiked(placeID: place.id.uuidString, by: loggedInEmail)
+            isBookmarked = bookmarkStore.isBookmarked(placeID: place.id.uuidString, by: loggedInEmail)
             startCountdownTimer()
         }
         .onDisappear {
-            stopCountdownTimer() 
+            stopCountdownTimer()
         }
-    } // <-- ปีกกาปิด body อยู่ตรงนี้
+    }
     
-    
+    // MARK: - Functions
     func isUserNearPlace() -> Bool {
         guard let userLocation = locationManager.userLocation else {
             print("❌ ไม่พบตำแหน่งผู้ใช้")
@@ -258,7 +259,7 @@ struct SacredPlaceDetailView: View {
         }
         let placeLocation = CLLocation(latitude: place.latitude, longitude: place.longitude)
         let distance = userLocation.distance(from: placeLocation)
-        return distance < 50000
+        return distance < 50000 // 50 km for testing
     }
     
     func openInMaps() {
@@ -287,6 +288,7 @@ struct SacredPlaceDetailView: View {
         }
     }
     
+    // MARK: - Timer Functions
     func startCountdownTimer() {
         updateTimeRemaining()
         countdownTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
@@ -319,6 +321,7 @@ struct SacredPlaceDetailView: View {
     }
 }
 
+// MARK: - ExpandableTextView
 struct ExpandableTextView: View {
     let fullText: String
     let lineLimit: Int
@@ -341,4 +344,3 @@ struct ExpandableTextView: View {
         }
     }
 }
-

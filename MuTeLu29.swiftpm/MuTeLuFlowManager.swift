@@ -29,4 +29,5 @@ enum MuTeLuScreen {
     case gameMenu
     case meritPoints
     case offeringGame
+    case bookmarks
 }

@@ -110,6 +110,9 @@ struct AppView: View {
                 .environmentObject(language)
                 .environmentObject(flowManager)
             
+        case .bookmarks: 
+            BookmarkView()
+            
         @unknown default:
             Text("Coming soon...")
         }
