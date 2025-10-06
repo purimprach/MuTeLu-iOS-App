@@ -6,7 +6,7 @@ import MapKit
 struct MainMenuView: View {
     @Binding var showBanner: Bool
     @EnvironmentObject var language: AppLanguage
-    @EnvironmentObject var checkInStore: CheckInStore
+    @EnvironmentObject var activityStore: ActivityStore
     var currentMember: Member?
     var flowManager: MuTeLuFlowManager
     
@@ -45,7 +45,7 @@ struct MainMenuView: View {
             name: currentMember?.fullName,
             email: currentMember?.email,
             subtitle: language.localized("ยินดีต้อนรับกลับ", "Welcome back"),
-            meritPoints: checkInStore.records(for: currentMember?.email ?? "").reduce(0) { $0 + $1.meritPoints },
+            meritPoints: activityStore.totalMeritPoints(for: currentMember?.email ?? ""),
             onProfile: {}
         )
         .environmentObject(language)

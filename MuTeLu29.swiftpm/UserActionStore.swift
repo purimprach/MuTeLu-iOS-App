@@ -3,10 +3,14 @@ import Foundation
 // Enum บอกประเภทของ Action
 enum UserActionType: Int, Codable {
     case viewDetail = 1
-    case bookmark = 2
+    case bookmark = 5
     case like = 3
-    case navigate = 4
-    case checkIn = 7
+    case navigate = 2
+    case checkIn = 10
+    
+    var score: Int {
+        return self.rawValue
+    }
 }
 
 // Struct เก็บ 1 เหตุการณ์

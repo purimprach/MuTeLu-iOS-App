@@ -5,6 +5,8 @@ enum ActivityType: String, Codable, Hashable {
     case checkIn = "check_in"
     case liked = "liked"
     case unliked = "unliked"
+    case bookmarked = "bookmarked"
+    case unbookmarked = "unbookmarked"
 }
 
 // 2. Struct กลางสำหรับเก็บประวัติกิจกรรมทุกอย่าง
@@ -16,7 +18,7 @@ struct ActivityRecord: Codable, Identifiable, Hashable {
     let placeNameEN: String
     let memberEmail: String
     let date: Date
-    let meritPoints: Int? // เป็น Optional เพราะการไลค์อาจไม่ให้แต้ม
+    let meritPoints: Int? // เป็น Optional เพราะการไลค์/บุ๊คมาร์คอาจไม่ให้แต้ม
 }
 
 // 3. Store ใหม่สำหรับจัดการกิจกรรมทั้งหมด

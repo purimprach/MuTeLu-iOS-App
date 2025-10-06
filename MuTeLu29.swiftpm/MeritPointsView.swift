@@ -3,10 +3,15 @@ import SwiftUI
 struct MeritPointsView: View {
     @EnvironmentObject var language: AppLanguage
     @EnvironmentObject var flowManager: MuTeLuFlowManager
-    @EnvironmentObject var checkInStore: CheckInStore
+    
+    // --- vvv จุดที่แก้ไข vvv ---
+    @EnvironmentObject var activityStore: ActivityStore // ✅ เปลี่ยนมาใช้ ActivityStore
+    // --- ^^^ จุดที่แก้ไข ^^^ ---
+    
     @AppStorage("loggedInEmail") var loggedInEmail: String = ""
     
-    @State private var userRecords: [CheckInRecord] = []
+    // State สำหรับเก็บประวัติ (เปลี่ยนเป็น ActivityRecord)
+    @State private var userRecords: [ActivityRecord] = []
     
     var dateFormatter: DateFormatter {
         let formatter = DateFormatter()
@@ -17,14 +22,16 @@ struct MeritPointsView: View {
         return formatter
     }
     
+    // --- vvv จุดที่แก้ไข vvv ---
+    // ✅ คำนวณแต้มบุญทั้งหมดจาก ActivityStore
     var totalPoints: Int {
-        userRecords.map { $0.meritPoints }.reduce(0, +)
+        activityStore.totalMeritPoints(for: loggedInEmail)
     }
+    // --- ^^^ จุดที่แก้ไข ^^^ ---
     
     var body: some View {
         VStack(spacing: 16) {
             BackButton()
-            // 💜 คะแนนรวม
             VStack(spacing: 8) {
                 Text(language.localized("คะแนนแต้มบุญทั้งหมด", "Total Merit Points"))
                     .font(.headline)
@@ -35,7 +42,6 @@ struct MeritPointsView: View {
             }
             .padding(.top)
             
-            // 📋 รายการแต้มบุญ
             if userRecords.isEmpty {
                 Spacer()
                 Text(language.localized("ยังไม่มีประวัติแต้มบุญ", "No merit history yet"))
@@ -43,26 +49,37 @@ struct MeritPointsView: View {
                 Spacer()
             } else {
                 List {
+                    // --- vvv จุดที่แก้ไข vvv ---
+                    // ✅ วนลูปจาก userRecords ที่เป็น [ActivityRecord]
                     ForEach(userRecords) { record in
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(language.currentLanguage == "th" ? record.placeNameTH : record.placeNameEN)
-                                .font(.headline)
-                            Text(dateFormatter.string(from: record.date))
-                                .font(.caption)
-                                .foregroundColor(.gray)
-                            Text("+\(record.meritPoints) \(language.localized("แต้ม", "points"))")
-                                .font(.subheadline)
-                                .foregroundColor(.green)
+                        // ตรวจสอบว่าเป็น activity ประเภท checkIn เท่านั้น
+                        if record.type == .checkIn {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(language.currentLanguage == "th" ? record.placeNameTH : record.placeNameEN)
+                                    .font(.headline)
+                                Text(dateFormatter.string(from: record.date))
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
+                                // ใช้ optional unwrap สำหรับ meritPoints
+                                if let points = record.meritPoints {
+                                    Text("+\(points) \(language.localized("แต้ม", "points"))")
+                                        .font(.subheadline)
+                                        .foregroundColor(.green)
+                                }
+                            }
+                            .padding(.vertical, 6)
                         }
-                        .padding(.vertical, 6)
                     }
+                    // --- ^^^ จุดที่แก้ไข ^^^ ---
                 }
             }
         }
         .padding(.top)
         .onAppear {
-            checkInStore.load()
-            userRecords = checkInStore.records(for: loggedInEmail).sorted { $0.date > $1.date }
+            // --- vvv จุดที่แก้ไข vvv ---
+            // ✅ ดึงข้อมูลจาก ActivityStore
+            userRecords = activityStore.checkInRecords(for: loggedInEmail).sorted { $0.date > $1.date }
+            // --- ^^^ จุดที่แก้ไข ^^^ ---
         }
     }
 }

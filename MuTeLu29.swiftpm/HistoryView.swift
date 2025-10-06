@@ -3,10 +3,14 @@ import SwiftUI
 struct HistoryView: View {
     @EnvironmentObject var language: AppLanguage
     @EnvironmentObject var flowManager: MuTeLuFlowManager
-    @EnvironmentObject var checkInStore: CheckInStore
+    
+    // --- vvv จุดที่แก้ไข vvv ---
+    @EnvironmentObject var activityStore: ActivityStore // ✅ เปลี่ยนมาใช้ ActivityStore
+    // --- ^^^ จุดที่แก้ไข ^^^ ---
+    
     @AppStorage("loggedInEmail") var loggedInEmail: String = ""
     
-    @State private var userRecords: [CheckInRecord] = []
+    @State private var userRecords: [ActivityRecord] = []
     
     var formatter: DateFormatter {
         let f = DateFormatter()
@@ -34,9 +38,12 @@ struct HistoryView: View {
                             Text(formatter.string(from: record.date))
                                 .font(.caption)
                                 .foregroundColor(.gray)
-                            Text("+\(record.meritPoints) \(language.localized("แต้มบุญ", "merit points"))")
-                                .font(.caption2)
-                                .foregroundColor(.green)
+                            // ใช้ optional unwrap สำหรับ meritPoints
+                            if let points = record.meritPoints {
+                                Text("+\(points) \(language.localized("แต้มบุญ", "merit points"))")
+                                    .font(.caption2)
+                                    .foregroundColor(.green)
+                            }
                         }
                         .padding(.vertical, 4)
                     }
@@ -44,8 +51,11 @@ struct HistoryView: View {
             }
         }
         .onAppear {
-            userRecords = checkInStore.records(for: loggedInEmail)
+            // --- vvv จุดที่แก้ไข vvv ---
+            // ✅ ดึงข้อมูล check-in จาก ActivityStore
+            userRecords = activityStore.checkInRecords(for: loggedInEmail)
                 .sorted { $0.date > $1.date }
+            // --- ^^^ จุดที่แก้ไข ^^^ ---
         }
     }
 }

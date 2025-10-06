@@ -13,14 +13,13 @@ final class AdminTabRouter: ObservableObject {
     @Published var selected: Tab = .members
 }
 
-// MARK: - Helpers & Extensions
+// MARK: - Helpers & Extensions (ไม่มีการเปลี่ยนแปลง)
 
 extension Color {
     static let surfaceOverlay = Color.primary.opacity(0.06)
 }
 
 extension String {
-    /// อักษร 2 ตัวจาก local-part ของอีเมล
     var emailInitials: String {
         let local = self.split(separator: "@").first.map(String.init) ?? self
         let letters = local
@@ -64,7 +63,7 @@ struct AccentPalette {
     }
 }
 
-// MARK: - AdminView
+// MARK: - AdminView (ไม่มีการเปลี่ยนแปลง)
 
 struct AdminView: View {
     @EnvironmentObject var language: AppLanguage
@@ -97,9 +96,12 @@ struct MemberManagementView: View {
     @EnvironmentObject var memberStore: MemberStore
     @EnvironmentObject var language: AppLanguage
     @EnvironmentObject var flowManager: MuTeLuFlowManager
-    @EnvironmentObject var checkInStore: CheckInStore
     @EnvironmentObject var tabRouter: AdminTabRouter
     @EnvironmentObject var filterStore: CheckinFilterStore
+    
+    // --- vvv จุดที่แก้ไข vvv ---
+    @EnvironmentObject var activityStore: ActivityStore // ✅ เปลี่ยนมาใช้ ActivityStore
+    // --- ^^^ จุดที่แก้ไข ^^^ ---
     
     @State private var editingMember: Member?
     @State private var memberToDelete: Member?
@@ -107,7 +109,7 @@ struct MemberManagementView: View {
     @State private var showingAddSheet = false
     @State private var sortOption: SortOption = .nameAZ
     @State private var searchText = ""
-    @State private var showLogoutConfirm = false // 👈 **เพิ่ม State สำหรับ Alert**
+    @State private var showLogoutConfirm = false
     
     enum SortOption: String, CaseIterable, Identifiable {
         case nameAZ, nameZA, meritHigh, recentLogin
@@ -115,6 +117,7 @@ struct MemberManagementView: View {
     }
     
     private func label(_ opt: SortOption) -> String {
+        // ... (โค้ดส่วนนี้เหมือนเดิม)
         switch opt {
         case .nameAZ:     return language.localized("ชื่อ A→Z", "Name A→Z")
         case .nameZA:     return language.localized("ชื่อ Z→A", "Name Z→A")
@@ -122,9 +125,14 @@ struct MemberManagementView: View {
         case .recentLogin:return language.localized("เข้าระบบล่าสุด", "Recent Login")
         }
     }
+    
+    // --- vvv จุดที่แก้ไข vvv ---
+    // ✅ เปลี่ยนมาใช้ activityStore
     private func meritPoints(for m: Member) -> Int {
-        checkInStore.records(for: m.email).reduce(0) { $0 + $1.meritPoints }
+        activityStore.totalMeritPoints(for: m.email)
     }
+    // --- ^^^ จุดที่แก้ไข ^^^ ---
+    
     private var filteredMembers: [Member] {
         var list = memberStore.members
         if !searchText.isEmpty {
@@ -153,7 +161,7 @@ struct MemberManagementView: View {
                                    language: language,
                                    onEdit: { editingMember = member },
                                    onDelete: { memberToDelete = member; showDeleteConfirm = true })
-                        .environmentObject(checkInStore)
+                        .environmentObject(activityStore) // ✅ ส่ง activityStore เข้าไป
                         .environmentObject(tabRouter)
                         .environmentObject(filterStore)
                     }
@@ -164,16 +172,14 @@ struct MemberManagementView: View {
             .navigationTitle(language.localized("จัดการสมาชิก", "Member Management"))
             .searchable(text: $searchText, prompt: Text(language.localized("ค้นหาชื่อ / อีเมล / โทรศัพท์", "Search name / email / phone")))
             .toolbar {
-                // 👇 --- **ส่วนที่แก้ไข** ---
+                // (Toolbar เหมือนเดิม)
                 ToolbarItem(placement: .topBarLeading) {
                     Button(role: .destructive) {
-                        showLogoutConfirm = true // แสดง Alert ยืนยัน
+                        showLogoutConfirm = true
                     } label: {
                         Label(language.localized("ออกจากระบบ", "Logout"), systemImage: "rectangle.portrait.and.arrow.right")
                     }
                 }
-                // -------------------------
-                
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
                         Picker(selection: $sortOption) {
@@ -213,7 +219,6 @@ struct MemberManagementView: View {
                     showingAddSheet = false
                 }
             }
-            // 👇 **เพิ่ม Alert สำหรับยืนยันการ Logout**
             .alert(language.localized("ยืนยันการออกจากระบบ", "Confirm Logout"), isPresented: $showLogoutConfirm) {
                 Button(language.localized("ออกจากระบบ", "Logout"), role: .destructive) {
                     flowManager.isLoggedIn = false
@@ -227,7 +232,7 @@ struct MemberManagementView: View {
     }
 }
 
-// MARK: - MemberCard (Top 7 วัดเท่านั้น)
+// MARK: - MemberCard
 
 struct MemberCard: View {
     let member: Member
@@ -235,24 +240,27 @@ struct MemberCard: View {
     var onEdit: () -> Void
     var onDelete: () -> Void
     
-    @EnvironmentObject var checkInStore: CheckInStore
+    // --- vvv จุดที่แก้ไข vvv ---
+    @EnvironmentObject var activityStore: ActivityStore // ✅ เปลี่ยนมาใช้ ActivityStore
+    // --- ^^^ จุดที่แก้ไข ^^^ ---
+    
     @EnvironmentObject var tabRouter: AdminTabRouter
     @EnvironmentObject var filterStore: CheckinFilterStore
     
     private var meritPoints: Int {
-        checkInStore.records(for: member.email).reduce(0) { $0 + $1.meritPoints }
+        activityStore.totalMeritPoints(for: member.email)
     }
+    
     private var latestCheckinText: String {
-        let rs = checkInStore.records(for: member.email)
+        let rs = activityStore.checkInRecords(for: member.email) // ✅
         guard let d = rs.max(by: { $0.date < $1.date })?.date else {
             return language.localized("ยังไม่เคยเช็คอิน", "No check-ins yet")
         }
         return formattedDateTime(d)
     }
     
-    /// คืน Top N วัดของ user นี้ (เร็วกว่าแสดงทั้งหมด)
     private func topCheckins(limit: Int = 7) -> [(placeID: String, name: String, count: Int)] {
-        let records = checkInStore.records(for: member.email)
+        let records = activityStore.checkInRecords(for: member.email) // ✅
         guard !records.isEmpty else { return [] }
         let isTH = (language.currentLanguage == "th")
         
@@ -262,7 +270,7 @@ struct MemberCard: View {
                     nameEN: $0.value.first?.placeNameEN ?? "-",
                     count: $0.value.count) }
             .sorted { l, r in
-                if l.count != r.count { return l.count > r.count }           // มาก→น้อย
+                if l.count != r.count { return l.count > r.count }
                 let ln = isTH ? l.nameTH : l.nameEN
                 let rn = isTH ? r.nameTH : r.nameEN
                 return ln.localizedCompare(rn) == .orderedAscending
@@ -273,12 +281,14 @@ struct MemberCard: View {
     }
     
     private var gradient: LinearGradient {
+        // ... (โค้ดส่วนนี้เหมือนเดิม)
         let (c1, c2) = AccentPalette.pair(for: member.email)
         return LinearGradient(colors: [c1.opacity(0.38), c2.opacity(0.38)],
                               startPoint: .topLeading, endPoint: .bottomTrailing)
     }
     
     var body: some View {
+        // (Body ของ MemberCard ไม่มีการเปลี่ยนแปลงโครงสร้าง แค่ข้อมูลข้างในถูกอัปเดตอัตโนมัติ)
         VStack(alignment: .leading, spacing: 12) {
             // Header
             HStack(spacing: 12) {
@@ -321,7 +331,6 @@ struct MemberCard: View {
                     infoRow(icon: "car.fill", text: member.carPlate, tint: .orange)
                 }
                 
-                // Last login
                 if let lastLogin = member.lastLogin {
                     infoRow(icon: "clock.arrow.circlepath",
                             text: language.localized("เข้าระบบล่าสุด: \(formattedDateTime(lastLogin))",
@@ -333,7 +342,6 @@ struct MemberCard: View {
                             tint: .gray)
                 }
                 
-                // Interests (always show)
                 let interests: String = {
                     if member.tagScores.isEmpty { return "-" }
                     let sorted = member.tagScores.sorted { $0.value > $1.value }
@@ -344,13 +352,11 @@ struct MemberCard: View {
                         tint: .red)
                 .fixedSize(horizontal: false, vertical: true)
                 
-                // Latest check-in
                 infoRow(icon: "clock.badge.checkmark",
                         text: language.localized("เช็คอินล่าสุด: \(latestCheckinText)",
                                                  "Latest check-in: \(latestCheckinText)"),
                         tint: .blue)
                 
-                // ✅ Top 7 วัด (ชิปกดได้)
                 let top7 = topCheckins(limit: 7)
                 if !top7.isEmpty {
                     HStack(alignment: .top, spacing: 8) {
@@ -428,16 +434,19 @@ struct MemberCard: View {
 // MARK: - CheckinHistoryView
 
 struct CheckinHistoryView: View {
-    @EnvironmentObject var checkInStore: CheckInStore
     @EnvironmentObject var memberStore: MemberStore
     @EnvironmentObject var language: AppLanguage
     @EnvironmentObject var filterStore: CheckinFilterStore
     
+    // --- vvv จุดที่แก้ไข vvv ---
+    @EnvironmentObject var activityStore: ActivityStore // ✅ เปลี่ยนมาใช้ ActivityStore
+    // --- ^^^ จุดที่แก้ไข ^^^ ---
+    
     @State private var searchText = ""
     @State private var sortNewestFirst = true
     
-    private var filteredRecords: [CheckInRecord] {
-        var records = checkInStore.records
+    private var filteredRecords: [ActivityRecord] { // ✅ เปลี่ยน Type เป็น ActivityRecord
+        var records = activityStore.activities.filter { $0.type == .checkIn } // ✅
         if let email = filterStore.selectedUserEmail {
             records = records.filter { $0.memberEmail.caseInsensitiveCompare(email) == .orderedSame }
         }
@@ -469,7 +478,7 @@ struct CheckinHistoryView: View {
                                 Label(email, systemImage: "person.crop.circle.fill")
                             }
                             if let pid = filterStore.selectedPlaceID,
-                               let sample = checkInStore.records.first(where: { $0.placeID == pid }) {
+                               let sample = activityStore.activities.first(where: { $0.placeID == pid }) { // ✅
                                 Label(sample.placeNameTH, systemImage: "building.columns.fill")
                             }
                             Spacer()
@@ -519,7 +528,7 @@ struct CheckinHistoryView: View {
         }
     }
     
-    private func groupedByDay(_ records: [CheckInRecord]) -> [(key: Date, value: [CheckInRecord])] {
+    private func groupedByDay(_ records: [ActivityRecord]) -> [(key: Date, value: [ActivityRecord])] { // ✅
         let cal = Calendar.current
         let groups = Dictionary(grouping: records) { cal.startOfDay(for: $0.date) }
         return groups.keys.sorted(by: >).map { ($0, groups[$0]!.sorted { $0.date > $1.date }) }
@@ -535,7 +544,7 @@ struct CheckinHistoryView: View {
 // MARK: - CheckInRow
 
 struct CheckInRow: View {
-    let record: CheckInRecord
+    let record: ActivityRecord // ✅
     @EnvironmentObject var memberStore: MemberStore
     @EnvironmentObject var language: AppLanguage
     
@@ -551,10 +560,12 @@ struct CheckInRow: View {
                 Text(language.localized(record.placeNameTH, record.placeNameEN))
                     .font(.headline).foregroundColor(.primary)
                 Spacer()
-                Label("+\(record.meritPoints)", systemImage: "star.fill")
-                    .font(.subheadline.bold()).foregroundColor(.orange)
-                    .padding(.horizontal, 8).padding(.vertical, 4)
-                    .background(.thinMaterial).clipShape(Capsule())
+                if let points = record.meritPoints { // ✅
+                    Label("+\(points)", systemImage: "star.fill")
+                        .font(.subheadline.bold()).foregroundColor(.orange)
+                        .padding(.horizontal, 8).padding(.vertical, 4)
+                        .background(.thinMaterial).clipShape(Capsule())
+                }
             }
             HStack(alignment: .top, spacing: 12) {
                 VStack(alignment: .leading, spacing: 6) {

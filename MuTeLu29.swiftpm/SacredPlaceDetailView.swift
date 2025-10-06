@@ -9,10 +9,11 @@ struct SacredPlaceDetailView: View {
     @State private var showDetailSheet = false
     @State private var showContactOptions = false
     @State private var showCheckinAlert = false
-    @EnvironmentObject var checkInStore: CheckInStore
-    @EnvironmentObject var memberStore: MemberStore
-    @EnvironmentObject var likeStore: LikeStore
-    @EnvironmentObject var bookmarkStore: BookmarkStore
+    
+    // --- EnvironmentObjects ที่ใช้ ---
+    @EnvironmentObject var activityStore: ActivityStore // ✅ ใช้ Store กลาง
+    @EnvironmentObject var likeStore: LikeStore // (ยังคงไว้เพื่ออัปเดต UI ทันที)
+    @EnvironmentObject var bookmarkStore: BookmarkStore // (ยังคงไว้เพื่ออัปเดต UI ทันที)
     
     @AppStorage("loggedInEmail") var loggedInEmail: String = ""
     
@@ -27,7 +28,6 @@ struct SacredPlaceDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 
-                // ปุ่มย้อนกลับ
                 Button(action: { flowManager.currentScreen = .recommendation }) {
                     HStack {
                         Image(systemName: "chevron.left")
@@ -44,14 +44,27 @@ struct SacredPlaceDetailView: View {
                         
                         Spacer()
                         
-                        // --- กลุ่มปุ่ม Like และ Bookmark ---
                         HStack(spacing: 20) {
-                            // ปุ่ม Bookmark
+                            // --- ปุ่ม Bookmark ---
                             Button(action: {
+                                // 1. อัปเดต UI ทันที (ใช้ Store เดิม)
                                 bookmarkStore.toggleBookmark(placeID: place.id.uuidString, for: loggedInEmail)
                                 withAnimation(.spring(response: 0.4, dampingFraction: 0.5)) {
                                     isBookmarked.toggle()
                                 }
+                                
+                                // 2. บันทึก Activity ลง Store กลาง
+                                let activityType: ActivityType = isBookmarked ? .bookmarked : .unbookmarked
+                                let newActivity = ActivityRecord(
+                                    type: activityType,
+                                    placeID: place.id.uuidString,
+                                    placeNameTH: place.nameTH,
+                                    placeNameEN: place.nameEN,
+                                    memberEmail: loggedInEmail,
+                                    date: Date(),
+                                    meritPoints: nil // การ bookmark ไม่มีแต้มบุญ
+                                )
+                                activityStore.addActivity(newActivity)
                             }) {
                                 Image(systemName: isBookmarked ? "bookmark.fill" : "bookmark")
                                     .font(.title)
@@ -59,12 +72,26 @@ struct SacredPlaceDetailView: View {
                                     .scaleEffect(isBookmarked ? 1.2 : 1.0)
                             }
                             
-                            // ปุ่ม Like
+                            // --- ปุ่ม Like ---
                             Button(action: {
+                                // 1. อัปเดต UI ทันที (ใช้ Store เดิม)
                                 likeStore.toggleLike(placeID: place.id.uuidString, for: loggedInEmail)
                                 withAnimation(.spring(response: 0.4, dampingFraction: 0.5)) {
                                     isLiked.toggle()
                                 }
+                                
+                                // 2. บันทึก Activity ลง Store กลาง
+                                let activityType: ActivityType = isLiked ? .liked : .unliked
+                                let newActivity = ActivityRecord(
+                                    type: activityType,
+                                    placeID: place.id.uuidString,
+                                    placeNameTH: place.nameTH,
+                                    placeNameEN: place.nameEN,
+                                    memberEmail: loggedInEmail,
+                                    date: Date(),
+                                    meritPoints: nil // การ like ไม่มีแต้มบุญ
+                                )
+                                activityStore.addActivity(newActivity)
                             }) {
                                 Image(systemName: isLiked ? "heart.fill" : "heart")
                                     .font(.title)
@@ -81,7 +108,6 @@ struct SacredPlaceDetailView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .padding(.horizontal)
                 
-                // MARK: - Description
                 ExpandableTextView(
                     fullText: language.localized(place.descriptionTH, place.descriptionEN),
                     lineLimit: 5
@@ -95,7 +121,6 @@ struct SacredPlaceDetailView: View {
                 )
                 .padding(.horizontal)
                 
-                // MARK: - Image
                 Image(place.imageName)
                     .resizable()
                     .scaledToFit()
@@ -103,7 +128,6 @@ struct SacredPlaceDetailView: View {
                     .cornerRadius(12)
                     .padding(.horizontal)
                 
-                // MARK: - Buttons
                 Button(action: {
                     showDetailSheet.toggle()
                 }) {
@@ -117,7 +141,6 @@ struct SacredPlaceDetailView: View {
                 }
                 .padding(.horizontal)
                 
-                // MARK: - Map and Actions
                 VStack(alignment: .leading, spacing: 15) {
                     MapSnapshotView(
                         latitude: place.latitude,
@@ -140,9 +163,8 @@ struct SacredPlaceDetailView: View {
                     }
                     .padding(.horizontal)
                     
-                    // Check-in Button Logic
                     VStack {
-                        if checkInStore.hasCheckedInRecently(email: loggedInEmail, placeID: place.id.uuidString) {
+                        if activityStore.hasCheckedInRecently(email: loggedInEmail, placeID: place.id.uuidString) {
                             VStack(spacing: 8) {
                                 Label(language.localized("เช็คอินแล้ว", "Checked-in"), systemImage: "checkmark.seal.fill")
                                     .foregroundColor(.green)
@@ -164,29 +186,19 @@ struct SacredPlaceDetailView: View {
                             .cornerRadius(12)
                         } else if isUserNearPlace() {
                             Button(action: {
-                                if !checkInStore.hasCheckedInRecently(email: loggedInEmail, placeID: place.id.uuidString) {
-                                    let newRecord = CheckInRecord(
-                                        placeID: place.id.uuidString,
-                                        placeNameTH: place.nameTH,
-                                        placeNameEN: place.nameEN,
-                                        meritPoints: 15,
-                                        memberEmail: loggedInEmail,
-                                        date: Date(),
-                                        latitude: place.latitude,
-                                        longitude: place.longitude
-                                    )
-                                    checkInStore.add(record: newRecord)
-                                    
-                                    // (Optional) Update tag scores
-                                    if let userIndex = memberStore.members.firstIndex(where: { $0.email == loggedInEmail }) {
-                                        for tag in place.tags {
-                                              memberStore.members[userIndex].tagScores[tag, default: 0] += 1
-                                        }
-                                    }
-                                    
-                                    refreshTrigger = UUID()
-                                    showCheckinAlert = true
-                                }
+                                let newActivity = ActivityRecord(
+                                    type: .checkIn,
+                                    placeID: place.id.uuidString,
+                                    placeNameTH: place.nameTH,
+                                    placeNameEN: place.nameEN,
+                                    memberEmail: loggedInEmail,
+                                    date: Date(),
+                                    meritPoints: 15
+                                )
+                                activityStore.addActivity(newActivity)
+                                
+                                showCheckinAlert = true
+                                refreshTrigger = UUID()
                             }) {
                                 Label(language.localized("เช็คอินเพื่อรับแต้ม", "Check-in to earn points"), systemImage: "checkmark.seal.fill")
                                     .foregroundColor(.white)
@@ -214,7 +226,6 @@ struct SacredPlaceDetailView: View {
                     .padding(.horizontal)
                     .id(refreshTrigger)
                     
-                    // Contact Button
                     Button(action: {
                         showContactOptions = true
                     }) {
@@ -302,7 +313,7 @@ struct SacredPlaceDetailView: View {
     }
     
     func updateTimeRemaining() {
-        if let remaining = checkInStore.timeRemainingUntilNextCheckIn(email: loggedInEmail, placeID: place.id.uuidString) {
+        if let remaining = activityStore.timeRemainingUntilNextCheckIn(email: loggedInEmail, placeID: place.id.uuidString) {
             timeRemaining = remaining
             if remaining <= 0 {
                 stopCountdownTimer()
