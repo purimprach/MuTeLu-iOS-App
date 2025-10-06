@@ -10,10 +10,9 @@ struct SacredPlaceDetailView: View {
     @State private var showContactOptions = false
     @State private var showCheckinAlert = false
     
-    // --- EnvironmentObjects ที่ใช้ ---
-    @EnvironmentObject var activityStore: ActivityStore // ✅ ใช้ Store กลาง
-    @EnvironmentObject var likeStore: LikeStore // (ยังคงไว้เพื่ออัปเดต UI ทันที)
-    @EnvironmentObject var bookmarkStore: BookmarkStore // (ยังคงไว้เพื่ออัปเดต UI ทันที)
+    @EnvironmentObject var activityStore: ActivityStore
+    @EnvironmentObject var likeStore: LikeStore
+    @EnvironmentObject var bookmarkStore: BookmarkStore
     
     @AppStorage("loggedInEmail") var loggedInEmail: String = ""
     
@@ -45,15 +44,11 @@ struct SacredPlaceDetailView: View {
                         Spacer()
                         
                         HStack(spacing: 20) {
-                            // --- ปุ่ม Bookmark ---
                             Button(action: {
-                                // 1. อัปเดต UI ทันที (ใช้ Store เดิม)
                                 bookmarkStore.toggleBookmark(placeID: place.id.uuidString, for: loggedInEmail)
                                 withAnimation(.spring(response: 0.4, dampingFraction: 0.5)) {
                                     isBookmarked.toggle()
                                 }
-                                
-                                // 2. บันทึก Activity ลง Store กลาง
                                 let activityType: ActivityType = isBookmarked ? .bookmarked : .unbookmarked
                                 let newActivity = ActivityRecord(
                                     type: activityType,
@@ -62,7 +57,7 @@ struct SacredPlaceDetailView: View {
                                     placeNameEN: place.nameEN,
                                     memberEmail: loggedInEmail,
                                     date: Date(),
-                                    meritPoints: nil // การ bookmark ไม่มีแต้มบุญ
+                                    meritPoints: nil
                                 )
                                 activityStore.addActivity(newActivity)
                             }) {
@@ -72,15 +67,11 @@ struct SacredPlaceDetailView: View {
                                     .scaleEffect(isBookmarked ? 1.2 : 1.0)
                             }
                             
-                            // --- ปุ่ม Like ---
                             Button(action: {
-                                // 1. อัปเดต UI ทันที (ใช้ Store เดิม)
                                 likeStore.toggleLike(placeID: place.id.uuidString, for: loggedInEmail)
                                 withAnimation(.spring(response: 0.4, dampingFraction: 0.5)) {
                                     isLiked.toggle()
                                 }
-                                
-                                // 2. บันทึก Activity ลง Store กลาง
                                 let activityType: ActivityType = isLiked ? .liked : .unliked
                                 let newActivity = ActivityRecord(
                                     type: activityType,
@@ -89,7 +80,7 @@ struct SacredPlaceDetailView: View {
                                     placeNameEN: place.nameEN,
                                     memberEmail: loggedInEmail,
                                     date: Date(),
-                                    meritPoints: nil // การ like ไม่มีแต้มบุญ
+                                    meritPoints: nil
                                 )
                                 activityStore.addActivity(newActivity)
                             }) {
@@ -226,10 +217,12 @@ struct SacredPlaceDetailView: View {
                     .padding(.horizontal)
                     .id(refreshTrigger)
                     
+                    // --- vvv จุดที่แก้ไข vvv ---
                     Button(action: {
                         showContactOptions = true
                     }) {
-                        Text("📞 ติดต่อสถานที่")
+                        // ✅ ใช้ .localized() กับข้อความบนปุ่ม
+                        Text("📞 \(language.localized("ติดต่อสถานที่", "Contact Venue"))")
                             .fontWeight(.bold)
                             .frame(maxWidth: .infinity)
                             .padding()
@@ -238,12 +231,18 @@ struct SacredPlaceDetailView: View {
                             .cornerRadius(10)
                     }
                     .padding(.horizontal)
-                    .confirmationDialog("ติดต่อสถานที่", isPresented: $showContactOptions, titleVisibility: .visible) {
-                        Button("โทร") { contactPhone() }
-                        Button("อีเมล") { contactEmail() }
-                        Button("แอดไลน์") { openLine() }
-                        Button("ยกเลิก", role: .cancel) {}
+                    .confirmationDialog(
+                        language.localized("ติดต่อสถานที่", "Contact Venue"),
+                        isPresented: $showContactOptions,
+                        titleVisibility: .visible
+                    ) {
+                        // ✅ ใช้ .localized() กับตัวเลือกทั้งหมด
+                        Button(language.localized("โทร", "Call")) { contactPhone() }
+                        Button(language.localized("อีเมล", "Email")) { contactEmail() }
+                        Button(language.localized("แอดไลน์", "Add LINE")) { openLine() }
+                        Button(language.localized("ยกเลิก", "Cancel"), role: .cancel) {}
                     }
+                    // --- ^^^ จุดที่แก้ไข ^^^ ---
                 }
             }
             .padding(.top)
@@ -262,7 +261,7 @@ struct SacredPlaceDetailView: View {
         }
     }
     
-    // MARK: - Functions
+    // (ฟังก์ชันที่เหลือไม่มีการเปลี่ยนแปลง)
     func isUserNearPlace() -> Bool {
         guard let userLocation = locationManager.userLocation else {
             print("❌ ไม่พบตำแหน่งผู้ใช้")
@@ -299,7 +298,6 @@ struct SacredPlaceDetailView: View {
         }
     }
     
-    // MARK: - Timer Functions
     func startCountdownTimer() {
         updateTimeRemaining()
         countdownTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
@@ -332,7 +330,7 @@ struct SacredPlaceDetailView: View {
     }
 }
 
-// MARK: - ExpandableTextView
+// (ExpandableTextView ไม่มีการเปลี่ยนแปลง)
 struct ExpandableTextView: View {
     let fullText: String
     let lineLimit: Int
