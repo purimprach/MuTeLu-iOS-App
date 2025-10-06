@@ -5,140 +5,91 @@ struct AppView: View {
     @EnvironmentObject var language: AppLanguage
     @EnvironmentObject var locationManager: LocationManager
     @EnvironmentObject var memberStore: MemberStore
-    @StateObject var checkInStore = CheckInStore()
+    
+    // --- รับ EnvironmentObject ทั้งหมด ไม่สร้างใหม่ ---
+    @EnvironmentObject var checkInStore: CheckInStore
+    @EnvironmentObject var likeStore: LikeStore
+    @EnvironmentObject var userActionStore: UserActionStore
+    @EnvironmentObject var bookmarkStore: BookmarkStore
+    
     @AppStorage("loggedInEmail") private var loggedInEmail = ""
-    @StateObject var likeStore = LikeStore()
-    @StateObject var userActionStore = UserActionStore()
     
     private var activeMember: Member? {
         memberStore.members.first { $0.email == loggedInEmail }
     }
     
     var body: some View {
-        // <<< ลบ Group และ AnyView ออกทั้งหมด >>>
-        
+        // --- 1. เรียกใช้ @ViewBuilder ---
+        makeCurrentView()
+        // --- 2. ย้าย .environmentObject ทั้งหมดมาไว้ตรงนี้ ---
+            .environmentObject(flowManager)
+            .environmentObject(language)
+            .environmentObject(locationManager)
+            .environmentObject(memberStore)
+            .environmentObject(checkInStore)
+            .environmentObject(likeStore)
+            .environmentObject(userActionStore)
+            .environmentObject(bookmarkStore)
+    }
+    
+    // --- 3. สร้างฟังก์ชันใหม่ที่ใช้ @ViewBuilder ---
+    @ViewBuilder
+    private func makeCurrentView() -> some View {
         switch flowManager.currentScreen {
         case .login:
             LoginView()
-            
         case .registration:
             RegistrationView()
-            
         case .home:
             HomeView()
-                .environmentObject(flowManager)
-                .environmentObject(language)
-                .environmentObject(memberStore)
-                .environmentObject(locationManager)
-                .environmentObject(checkInStore)
         case .editProfile:
             if let memberToEdit = activeMember {
                 EditProfileView(user: memberToEdit)
-                    .environmentObject(flowManager)
-                    .environmentObject(language)
-                    .environmentObject(memberStore)
-                    .environmentObject(locationManager)
-                    .environmentObject(checkInStore)
             } else {
                 LoginView()
             }
-            
         case .recommenderForYou:
             RecommenderForYouView(currentMember: activeMember)
-                .environmentObject(language)
-                .environmentObject(flowManager)
-                .environmentObject(checkInStore)
-                .environmentObject(memberStore)
-                .environmentObject(locationManager)
-        
         case .recommendation:
             RecommendationView()
-                .environmentObject(flowManager)
-                .environmentObject(language)
-                .environmentObject(locationManager)
-                .environmentObject(memberStore)
-                .environmentObject(checkInStore)
-                .environmentObject(likeStore)
-                .environmentObject(userActionStore)
-            
-            
         case .sacredDetail(let place):
+            // --- 👇 แก้ไขบรรทัดนี้ ---
+            let _ = userActionStore.logAction(type: .viewDetail, placeID: place.id.uuidString, memberEmail: loggedInEmail)
             SacredPlaceDetailView(place: place)
-                .environmentObject(language)
-                .environmentObject(flowManager)
-                .environmentObject(checkInStore)
-                .environmentObject(memberStore)
-            
-            // ... เคสอื่นๆ ก็เอา AnyView ออกให้หมด ...
-            
         case .phoneFortune:
             PhoneFortuneView()
-            
         case .shirtColor:
             ShirtColorView()
-            
         case .carPlate:
             CarPlateView()
-            
         case .houseNumber:
             HouseNumberView()
-            
         case .tarot:
             TarotView()
-            
         case .mantra:
             MantraView()
-            
         case .seamSi:
             SeamSiView()
-            
         case .knowledge:
             KnowledgeMenuView()
-            
         case .wishDetail:
             WishDetailView()
-            
         case .adminLogin:
             AdminLoginView()
-            
         case .admin:
             AdminView()
-            
         case .gameMenu:
             GameMenuView()
-            
         case .meritPoints:
             MeritPointsView()
-            
         case .offeringGame:
             OfferingGameView()
-                .environmentObject(language)
-                .environmentObject(flowManager)
-            
-        case .bookmarks: 
+        case .bookmarks:
             BookmarkView()
-            
+        case .placesMap:
+            PlacesMapView()
         @unknown default:
             Text("Coming soon...")
         }
     }
 }
-#Preview {
-    // 1. สร้าง object จำลองของทุกอย่างที่ AppView ต้องใช้
-    //    (ถ้า class ของคุณต้องการค่าเริ่มต้น ก็ต้องใส่ให้ครบ)
-    let mockFlowManager = MuTeLuFlowManager()
-    let mockLanguage = AppLanguage()
-    let mockLocationManager = LocationManager()
-    let mockMemberStore = MemberStore()
-    
-    // ตั้งค่าหน้าจอเริ่มต้นที่อยากจะ Preview (เช่น อยากดูหน้า login)
-    // mockFlowManager.currentScreen = .login
-    
-    // 2. สร้าง AppView แล้ว "ฉีด" object เหล่านี้เข้าไปด้วย .environmentObject()
-    return AppView()
-        .environmentObject(mockFlowManager)
-        .environmentObject(mockLanguage)
-        .environmentObject(mockLocationManager)
-        .environmentObject(mockMemberStore)
-}
-

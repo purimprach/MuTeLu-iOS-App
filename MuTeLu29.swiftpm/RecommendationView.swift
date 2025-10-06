@@ -1,27 +1,19 @@
 import SwiftUI
 import MapKit
 
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// MARK: - Main View: RecommendationView
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 struct RecommendationView: View {
-    // --- 1. Properties ---
     @StateObject private var viewModel = SacredPlaceViewModel()
     @EnvironmentObject var checkInStore: CheckInStore
     @EnvironmentObject var language: AppLanguage
     @EnvironmentObject var flowManager: MuTeLuFlowManager
     @EnvironmentObject var locationManager: LocationManager
-    @EnvironmentObject var userActionStore: UserActionStore // 👈 เพิ่มเข้ามา
+    @EnvironmentObject var userActionStore: UserActionStore
     
     @AppStorage("loggedInEmail") var loggedInEmail: String = ""
     
-    // State สำหรับเก็บผลลัพธ์ (เหลือชุดเดียว)
     @State private var recommendedPlaces: [SacredPlace] = []
-    
-    // State สำหรับระยะทาง (เหมือนเดิม)
     @State private var routeDistances: [UUID: CLLocationDistance] = [:]
     
-    // --- 2. Body ---
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
@@ -33,7 +25,6 @@ struct RecommendationView: View {
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
                 
-                // --- Section: แนะนำสำหรับคุณ (จาก Profile) ---
                 if !recommendedPlaces.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
                         Text(language.localized("แนะนำสำหรับคุณโดยเฉพาะ", "Specially Recommended for You"))
@@ -47,7 +38,6 @@ struct RecommendationView: View {
                     Divider().padding()
                 }
                 
-                // --- Section: สถานที่ทั้งหมด ---
                 VStack(alignment: .leading, spacing: 8) {
                     Text(language.localized("สถานที่ทั้งหมด", "All Places"))
                         .font(.headline)
@@ -63,42 +53,45 @@ struct RecommendationView: View {
         .background(Color(.systemGroupedBackground))
         .onAppear {
             locationManager.userLocation = CLLocation(latitude: 13.738444, longitude: 100.531750)
-            generateRecommendations()
-            Task { await calculateAllRouteDistances() }
+            Task {
+                await generateRecommendations()
+            }
+            Task {
+                await calculateAllRouteDistances()
+            }
         }
-        .onChange(of: locationManager.userLocation) {
-            Task { await calculateAllRouteDistances() }
-        }
-    } // <--- body จบตรงนี้
+    }
     
-    
-    // --- 3. Functions (อยู่หลัง body แต่อยู่ใน struct) ---
-    
-    private func generateRecommendations() {
-        // 1. สร้าง User Tag Profile จากทุกพฤติกรรม
+    private func generateRecommendations() async {
+        // 1. สร้าง User Tag Profile (ยังทำงานใน Background)
         var userProfile: [String: Int] = [:]
         let userActions = userActionStore.getActions(for: loggedInEmail)
         
         for action in userActions {
-            // หาข้อมูลสถานที่จาก placeID ใน action
             if let place = viewModel.places.first(where: { $0.id.uuidString == action.placeID }) {
-                // นำคะแนนของ action ไปบวกให้กับทุก tag ของสถานที่นั้น
                 for tag in place.tags {
                     userProfile[tag, default: 0] += action.actionType.rawValue
                 }
             }
         }
         
-        // 2. สร้างคำแนะนำจาก Profile ที่ได้
+        // 2. สร้างคำแนะนำ (ยังทำงานใน Background)
         let engine = RecommendationEngine(places: viewModel.places)
-        let allVisitedIDs = checkInStore.records(for: loggedInEmail).map { UUID(uuidString: $0.placeID) }.compactMap { $0 }
+        let allInteractedPlaceIDs = userActions
+            .map { UUID(uuidString: $0.placeID) }
+            .compactMap { $0 }
+        let uniqueInteractedIDs = Array(Set(allInteractedPlaceIDs))
         
-        // ถ้าโปรไฟล์มีข้อมูล (ผู้ใช้เคยมี activity) ให้แนะนำตามโปรไฟล์
+        let finalRecommendations: [SacredPlace]
         if !userProfile.isEmpty {
-            self.recommendedPlaces = engine.getRecommendations(for: userProfile, excluding: allVisitedIDs, top: 5)
+            finalRecommendations = engine.getRecommendations(for: userProfile, excluding: uniqueInteractedIDs, top: 5)
         } else {
-            // ถ้าเป็นผู้ใช้ใหม่ที่ยังไม่มีข้อมูลเลย ให้แนะนำสถานที่ Top Rated ไปก่อน
-            self.recommendedPlaces = Array(viewModel.places.sorted { $0.rating > $1.rating }.prefix(3))
+            finalRecommendations = Array(viewModel.places.sorted { $0.rating > $1.rating }.prefix(3))
+        }
+        
+        // --- 👇 แก้ไขตรงนี้: กลับมาอัปเดต UI ที่ Main Thread ---
+        await MainActor.run {
+            self.recommendedPlaces = finalRecommendations
         }
     }
     
@@ -106,23 +99,19 @@ struct RecommendationView: View {
         guard let userLocation = locationManager.userLocation else { return }
         
         let placesToCalculate = viewModel.places
-        let results = await RouteDistanceService.shared.batchDistances(
-            from: userLocation.coordinate,
-            places: placesToCalculate,
-            mode: .driving
-        )
+        let results = await RouteDistanceService.shared.batchDistances(from: userLocation.coordinate, places: placesToCalculate, mode: .driving)
         
         var newDistances: [UUID: CLLocationDistance] = [:]
         for result in results {
             newDistances[result.place.id] = result.meters
         }
         
-        self.routeDistances = newDistances
+        // --- 👇 แก้ไขตรงนี้: กลับมาอัปเดต UI ที่ Main Thread ---
+        await MainActor.run {
+            self.routeDistances = newDistances
+        }
     }
-    
-} // <--- ปีกกาปิดสุดท้ายของ struct RecommendationView
-
-
+}
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // MARK: - Subviews (อยู่นอก struct หลัก)
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

@@ -13,6 +13,7 @@ struct SacredPlaceDetailView: View {
     @EnvironmentObject var memberStore: MemberStore
     @EnvironmentObject var likeStore: LikeStore
     @EnvironmentObject var bookmarkStore: BookmarkStore
+    @EnvironmentObject var userActionStore: UserActionStore
     
     @AppStorage("loggedInEmail") var loggedInEmail: String = ""
     
@@ -49,6 +50,7 @@ struct SacredPlaceDetailView: View {
                             // ปุ่ม Bookmark
                             Button(action: {
                                 bookmarkStore.toggleBookmark(placeID: place.id.uuidString, for: loggedInEmail)
+                                userActionStore.logAction(type: .bookmark, placeID: place.id.uuidString, memberEmail: loggedInEmail)
                                 withAnimation(.spring(response: 0.4, dampingFraction: 0.5)) {
                                     isBookmarked.toggle()
                                 }
@@ -62,6 +64,7 @@ struct SacredPlaceDetailView: View {
                             // ปุ่ม Like
                             Button(action: {
                                 likeStore.toggleLike(placeID: place.id.uuidString, for: loggedInEmail)
+                                userActionStore.logAction(type: .like, placeID: place.id.uuidString, memberEmail: loggedInEmail)
                                 withAnimation(.spring(response: 0.4, dampingFraction: 0.5)) {
                                     isLiked.toggle()
                                 }

@@ -30,4 +30,5 @@ enum MuTeLuScreen {
     case meritPoints
     case offeringGame
     case bookmarks
+    case placesMap
 }

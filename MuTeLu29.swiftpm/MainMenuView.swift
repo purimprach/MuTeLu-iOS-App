@@ -200,6 +200,7 @@ private struct PlaceSection: View {
                         }
                     }
                     .tabViewStyle(PageTabViewStyle(indexDisplayMode: .automatic))
+                    .indexViewStyle(.page(backgroundDisplayMode: .always))
                     .frame(height: 190)
                 }
             }
@@ -370,6 +371,7 @@ private struct QuickActionsGrid: View {
         [
             ("แนะนำสถานที่ศักดิ์สิทธิ์สำหรับคุณ","Recommended for You","wand.and.stars",.recommenderForYou),
             ("แนะนำสถานที่ศักดิ์สิทธิ์รอบจุฬาฯ","Sacred Places around Chula","building.columns", .recommendation),
+             ("สำรวจบนแผนที่", "Explore on Map", "map.fill", .placesMap),
             ("ทำนายเบอร์โทร","Phone Fortune","phone.circle", .phoneFortune),
             ("คะแนนแต้มบุญ","Merit Points","star.circle", .meritPoints),
             ("สีเสื้อประจำวัน","Shirt Color","tshirt", .shirtColor),
