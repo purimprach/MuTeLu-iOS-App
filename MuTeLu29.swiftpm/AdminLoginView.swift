@@ -31,7 +31,7 @@ struct AdminLoginView: View {
                 // 🔙 ปุ่มย้อนกลับอยู่ในเนื้อหน้า (ไม่ง้อ Toolbar)
                 HStack {
                     Button {
-                        flowManager.currentScreen = .login
+                        flowManager.navigateBack()
                     } label: {
                         Label(language.localized("ย้อนกลับ", "Back"), systemImage: "chevron.left")
                     }
@@ -111,7 +111,7 @@ struct AdminLoginView: View {
             return
         }
         
-        flowManager.currentScreen = .admin
+        flowManager.navigate(to: .admin)
     }
 }
 

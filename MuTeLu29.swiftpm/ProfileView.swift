@@ -83,15 +83,11 @@ struct ProfileView: View {
                         .foregroundColor(.red)
                         .padding()
                 }
-                // ... ในไฟล์ ProfileView.swift ...
-                
                 Divider() // เส้นคั่นก่อน Section ใหม่
-                
-                // --- 👇 แทนที่โค้ดเก่าด้วย Section ใหม่นี้ทั้งหมด ---
                 Section {
                     // 1. ปุ่ม "สถานที่ที่บันทึกไว้"
                     Button(action: {
-                        flowManager.currentScreen = .bookmarks
+                        flowManager.navigate(to: .bookmarks)
                     }) {
                         // ทำให้เหมือนแถวใน List และมี > ด้านหลัง
                         HStack {
@@ -136,7 +132,7 @@ struct ProfileView: View {
                 .alert(language.localized("ยืนยันการออกจากระบบ", "Confirm Logout"), isPresented: $showLogoutAlert) {
                     Button(language.localized("ยืนยัน", "Confirm"), role: .destructive) {
                         flowManager.isLoggedIn = false
-                        flowManager.currentScreen = .login
+                        flowManager.navigate(to: .login)
                     }
                     Button(language.localized("ยกเลิก", "Cancel"), role: .cancel) {}
                 }

@@ -85,8 +85,7 @@ struct RegistrationView: View {
                 }
                 
                 Button(action: {
-                    flowManager.isLoggedIn = false
-                    flowManager.currentScreen = .login
+                    flowManager.navigateBack()
                 }) {
                     Text(language.localized("กลับไปหน้าเข้าสู่ระบบ", "Back to Login"))
                         .font(.footnote)
@@ -219,7 +218,7 @@ struct RegistrationView: View {
         
         flowManager.loggedInEmail = trimmedEmail
         flowManager.isLoggedIn = false
-        flowManager.currentScreen = .login
+        flowManager.navigate(to: .login)
     }
     
     func isValidEmail(_ email: String) -> Bool {

@@ -222,7 +222,7 @@ struct MemberManagementView: View {
             .alert(language.localized("ยืนยันการออกจากระบบ", "Confirm Logout"), isPresented: $showLogoutConfirm) {
                 Button(language.localized("ออกจากระบบ", "Logout"), role: .destructive) {
                     flowManager.isLoggedIn = false
-                    flowManager.currentScreen = .login
+                    flowManager.navigate(to: .login)
                 }
                 Button(language.localized("ยกเลิก", "Cancel"), role: .cancel) {}
             } message: {

@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct WishDetailView: View {
-    @EnvironmentObject var flow: MuTeLuFlowManager
+    @EnvironmentObject var flowManager: MuTeLuFlowManager
     @EnvironmentObject var language: AppLanguage
     
     var body: some View {
@@ -9,7 +9,7 @@ struct WishDetailView: View {
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
                     Button(action: {
-                        flow.currentScreen = .home
+                        flowManager.navigate(to: .home)
                     }) {
                         Label(language.localized("ย้อนกลับ", "Back"), systemImage: "chevron.left")
                             .font(.headline)

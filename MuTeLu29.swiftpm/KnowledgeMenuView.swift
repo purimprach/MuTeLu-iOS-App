@@ -13,7 +13,7 @@ struct KnowledgeMenuView: View {
                 .fontWeight(.bold)
             
             Button(action: {
-                flow.currentScreen = .wishDetail
+                flow.navigate(to: .wishDetail)
             }) {
                 Label(language.localized("หลักการขอพร", "Principles of Making a Wish"), systemImage: "sparkles")
                     .font(.headline)

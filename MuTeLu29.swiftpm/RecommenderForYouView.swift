@@ -10,7 +10,6 @@ struct RecommenderForYouView: View {
     @EnvironmentObject var flowManager: MuTeLuFlowManager
     @EnvironmentObject private var memberStore: MemberStore
     
-    // --- 1. เพิ่ม Stores ที่จำเป็น ---
     @EnvironmentObject private var bookmarkStore: BookmarkStore
     @StateObject private var sacredPlaceViewModel = SacredPlaceViewModel()
     
@@ -23,7 +22,6 @@ struct RecommenderForYouView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-                // --- Header (เหมือนเดิม) ---
                 BackButton()
                 HStack {
                     Text(language.localized("สำหรับคุณ", "For You"))
@@ -32,26 +30,23 @@ struct RecommenderForYouView: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
                 
-                // --- Banners (เหมือนเดิม) ---
                 BuddhistDayBanner()
                 ReligiousHolidayBanner()
                 
-                // --- 2. เพิ่มการ์ด "สถานที่บันทึกไว้" เข้ามาตรงนี้ ---
                 BookmarkedPlacesCard(
                     placesViewModel: sacredPlaceViewModel,
                     bookmarkStore: bookmarkStore,
                     flowManager: flowManager,
                     loggedInEmail: loggedInEmail
                 )
-                .environmentObject(language) // ส่ง language ต่อไปให้ subview
+                .environmentObject(language)
                 
-                // --- Hero Cards (เหมือนเดิม) ---
                 Group {
                     TempleBannerCard(
                         headingTH: "แนะนำวัดเหมาะกับวันนี้",
                         headingEN: "Today’s Temple",
                         memberOverride: nil,
-                        openDetail: { flowManager.currentScreen = .recommendation }
+                        openDetail: { flowManager.navigate(to: .recommendation) } // <-- แก้ไขตรงนี้
                     )
                     .environmentObject(language)
                     .environmentObject(loc)
@@ -61,13 +56,13 @@ struct RecommenderForYouView: View {
                             headingTH: heading.th,
                             headingEN: heading.en,
                             memberOverride: activeMember,
-                            openDetail: { flowManager.currentScreen = .recommendation }
+                            openDetail: { flowManager.navigate(to: .recommendation) } // <-- และแก้ไขตรงนี้
                         )
                         .environmentObject(language)
                         .environmentObject(loc)
                     } else {
-                        MissingBirthdayCard { flowManager.currentScreen = .editProfile }
-                            .environmentObject(language) // ส่ง language ต่อไปให้ subview
+                        MissingBirthdayCard { flowManager.navigate(to: .editProfile) } // <-- และแก้ไขตรงนี้
+                            .environmentObject(language)
                     }
                 }
                 
@@ -79,7 +74,6 @@ struct RecommenderForYouView: View {
         .background(Color(.systemGroupedBackground))
     }
     
-    // MARK: - Helpers (เหมือนเดิม)
     private func birthdayHeading(for member: Member?) -> (th: String, en: String)? {
         guard let bday = member?.birthdate else { return nil }
         let (th, en) = weekdayName(for: bday)
@@ -97,7 +91,7 @@ struct RecommenderForYouView: View {
 
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// MARK: - Subview: BookmarkedPlacesCard (ส่วนที่เพิ่มใหม่)
+// MARK: - Subview: BookmarkedPlacesCard
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 private struct BookmarkedPlacesCard: View {
     @ObservedObject var placesViewModel: SacredPlaceViewModel
@@ -114,28 +108,28 @@ private struct BookmarkedPlacesCard: View {
     var body: some View {
         if !bookmarkedRecords.isEmpty {
             VStack(alignment: .leading, spacing: 10) {
-                // --- Header ของการ์ด ---
                 HStack(spacing: 8) {
                     Image(systemName: "bookmark.fill")
                         .foregroundColor(.blue)
                     Text(language.localized("รายการที่บันทึกไว้", "Saved Places"))
                     Spacer()
                     Button(language.localized("ดูทั้งหมด", "See All")) {
-                        flowManager.currentScreen = .bookmarks
+                        flowManager.navigate(to: .bookmarks) // <-- แก้ไขตรงนี้
                     }
                     .font(.subheadline)
                 }
                 .font(.subheadline.weight(.semibold))
                 .foregroundColor(.secondary)
                 
-                // --- Horizontal Scroll View ---
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
                         ForEach(bookmarkedRecords) { record in
                             if let place = placesViewModel.places.first(where: { $0.id.uuidString == record.placeID }) {
                                 BookmarkItem(place: place)
                                     .onTapGesture {
-                                        flowManager.currentScreen = .sacredDetail(place: place)
+                                        // vvvv --- นี่คือจุดที่แก้ไขปัญหาหลัก --- vvvv
+                                        flowManager.navigate(to: .sacredDetail(place: place))
+                                        // ^^^^ ----------------------------------- ^^^^
                                     }
                             }
                         }
@@ -149,6 +143,8 @@ private struct BookmarkedPlacesCard: View {
         }
     }
 }
+
+// (ส่วนที่เหลือของไฟล์ไม่ต้องแก้ไข)
 
 // MARK: - Subview: BookmarkItem (ส่วนที่เพิ่มใหม่)
 private struct BookmarkItem: View {
@@ -174,7 +170,7 @@ private struct BookmarkItem: View {
 
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// MARK: - Subviews เดิม (ไม่มีการเปลี่ยนแปลง)
+// MARK: - Subviews เดิม
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 private struct TempleBannerCard: View {
     @EnvironmentObject var language: AppLanguage

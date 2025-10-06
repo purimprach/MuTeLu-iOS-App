@@ -167,7 +167,7 @@ private struct PlaceSection: View {
                                     "🚙  \(formatDistance(item.distance, locale: Locale(identifier: "en_US"))) away"
                                 ),
                                 buttonTitle: language.localized("รายละเอียดสถานที่", "View details"),
-                                buttonAction: { flowManager.currentScreen = .sacredDetail(place: item.place) }
+                                buttonAction: { flowManager.navigate(to: .sacredDetail(place: item.place)) }
                             )
                             .padding(.bottom, 22) // กันจุด indicator ทับปุ่ม
                             .tag(idx)
@@ -193,7 +193,7 @@ private struct PlaceSection: View {
                                     place.rating
                                 ),
                                 buttonTitle: language.localized("รายละเอียดสถานที่", "View details"),
-                                buttonAction: { flowManager.currentScreen = .sacredDetail(place: place) }
+                                buttonAction: { flowManager.navigate(to: .sacredDetail(place: place)) }
                             )
                             .padding(.bottom, 22) // กันจุด indicator ทับปุ่ม
                             .tag(idx)

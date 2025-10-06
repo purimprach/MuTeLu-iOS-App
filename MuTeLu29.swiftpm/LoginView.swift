@@ -127,7 +127,7 @@ struct LoginView: View {
                 
                 // Register Button
                 Button {
-                    flowManager.currentScreen = .registration
+                    flowManager.navigate(to: .registration)
                     // (แนะนำ: อย่า set isLoggedIn = true ตรงนี้ ถ้ายังไม่ได้สมัครจริง)
                 } label: {
                     Text(language.localized("ยังไม่ได้เป็นสมาชิก กดที่นี่", "Not a member yet? Tap here."))
@@ -137,7 +137,7 @@ struct LoginView: View {
                 }
                 
                 Button(language.localized("< ระบบผู้ดูแล >", "< Admin > Login")) {
-                    flowManager.currentScreen = .adminLogin
+                    flowManager.navigate(to: .adminLogin)
                 }
                 .font(.caption)
                 .foregroundColor(.white)
@@ -168,7 +168,7 @@ struct LoginView: View {
                             withAnimation { showGreetingPopup = false }
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                                 flowManager.isLoggedIn = true
-                                flowManager.currentScreen = .home
+                                flowManager.navigate(to: .home)
                             }
                         }) {
                             Text(language.localized("ตกลง", "OK"))

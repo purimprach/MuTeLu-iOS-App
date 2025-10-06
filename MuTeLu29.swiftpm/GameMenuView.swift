@@ -15,7 +15,7 @@ struct GameMenuView: View {
                 
                 // เพิ่มเกมต่างๆ ที่นี่
                 GameCard(titleTH: "จัดเครื่องสังฆทาน", titleEN: "Offering Set Arrangement", imageName: "gift.fill") {
-                    flowManager.currentScreen = .offeringGame
+                    flowManager.navigate(to: .offeringGame)
                 }
                 
                 // เพิ่มเกมอื่นๆ ในอนาคต เช่น...

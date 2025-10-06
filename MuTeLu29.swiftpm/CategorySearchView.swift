@@ -54,7 +54,7 @@ struct CategorySearchView: View {
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 Button(action: {
-                    flowManager.currentScreen = .home
+                    flowManager.navigate(to: .home)
                 }) {
                     HStack {
                         Image(systemName: "chevron.left")

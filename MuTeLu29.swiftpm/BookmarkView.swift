@@ -13,9 +13,11 @@ struct BookmarkView: View {
     }
     
     var body: some View {
-        VStack {
-            // vvv ส่วนที่แก้ไข vvv
-            // --- ลบ Header และปุ่ม "ย้อนกลับ" ที่สร้างเองออกไปจากตรงนี้ ---
+        VStack(spacing: 0) { // <--- ปรับ spacing เป็น 0
+            BackButton()
+            Text("📍 \(language.localized("สถานที่ที่บันทึกไว้", "Bookmarked Places"))")
+                .font(.title2.bold())
+                .padding(.bottom)
             
             if bookmarkedRecords.isEmpty {
                 Spacer()
@@ -29,17 +31,13 @@ struct BookmarkView: View {
                         BookmarkRow(place: place, record: record)
                             .onTapGesture {
                                 // เมื่อกดที่รายการ ให้ไปที่หน้ารายละเอียด
-                                flowManager.currentScreen = .sacredDetail(place: place)
+                                flowManager.navigate(to: .sacredDetail(place: place))
                             }
                     }
                 }
                 .listStyle(.plain)
             }
         }
-        // vvv ส่วนที่แก้ไข vvv
-        // --- ตั้งชื่อหัวข้อของหน้าให้สวยงาม ---
-        .navigationTitle("📍 \(language.localized("สถานที่บันทึกไว้", "Bookmarked Places"))")
-        .navigationBarTitleDisplayMode(.inline) // ทำให้หัวข้อเล็กลง
     }
 }
 

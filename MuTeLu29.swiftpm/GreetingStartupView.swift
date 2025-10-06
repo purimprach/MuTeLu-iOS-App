@@ -27,7 +27,7 @@ struct GreetingStartupView: View {
         .padding()
         .onAppear {
             DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                flowManager.currentScreen = .home
+                flowManager.navigateToRoot()
             }
         }
     }

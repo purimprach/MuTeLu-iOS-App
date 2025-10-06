@@ -27,13 +27,18 @@ struct SacredPlaceDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 
-                Button(action: { flowManager.currentScreen = .recommendation }) {
+                // vvvv --- ส่วนที่แก้ไข --- vvvv
+                Button(action: {
+                    // เปลี่ยนจากคำสั่งอื่น มาเป็น navigateBack()
+                    flowManager.navigateBack()
+                }) {
                     HStack {
                         Image(systemName: "chevron.left")
                         Text(language.localized("ย้อนกลับ", "Back"))
                     }
                     .font(.body).foregroundColor(.purple).padding(.leading).bold()
                 }
+                // ^^^^ ------------------- ^^^^
                 
                 // MARK: - Header Card
                 VStack(alignment: .leading, spacing: 10) {
@@ -217,11 +222,9 @@ struct SacredPlaceDetailView: View {
                     .padding(.horizontal)
                     .id(refreshTrigger)
                     
-                    // --- vvv จุดที่แก้ไข vvv ---
                     Button(action: {
                         showContactOptions = true
                     }) {
-                        // ✅ ใช้ .localized() กับข้อความบนปุ่ม
                         Text("📞 \(language.localized("ติดต่อสถานที่", "Contact Venue"))")
                             .fontWeight(.bold)
                             .frame(maxWidth: .infinity)
@@ -236,13 +239,11 @@ struct SacredPlaceDetailView: View {
                         isPresented: $showContactOptions,
                         titleVisibility: .visible
                     ) {
-                        // ✅ ใช้ .localized() กับตัวเลือกทั้งหมด
                         Button(language.localized("โทร", "Call")) { contactPhone() }
                         Button(language.localized("อีเมล", "Email")) { contactEmail() }
                         Button(language.localized("แอดไลน์", "Add LINE")) { openLine() }
                         Button(language.localized("ยกเลิก", "Cancel"), role: .cancel) {}
                     }
-                    // --- ^^^ จุดที่แก้ไข ^^^ ---
                 }
             }
             .padding(.top)
@@ -261,7 +262,6 @@ struct SacredPlaceDetailView: View {
         }
     }
     
-    // (ฟังก์ชันที่เหลือไม่มีการเปลี่ยนแปลง)
     func isUserNearPlace() -> Bool {
         guard let userLocation = locationManager.userLocation else {
             print("❌ ไม่พบตำแหน่งผู้ใช้")
@@ -330,7 +330,6 @@ struct SacredPlaceDetailView: View {
     }
 }
 
-// (ExpandableTextView ไม่มีการเปลี่ยนแปลง)
 struct ExpandableTextView: View {
     let fullText: String
     let lineLimit: Int

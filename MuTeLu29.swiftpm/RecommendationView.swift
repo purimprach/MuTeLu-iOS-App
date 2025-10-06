@@ -142,7 +142,7 @@ struct PlaceRow: View {
     
     var body: some View {
         Button(action: {
-            flowManager.currentScreen = .sacredDetail(place: place)
+            flowManager.navigate(to: .sacredDetail(place: place))
         }) {
             HStack(spacing: 16) {
                 if UIImage(named: place.imageName) != nil {
