@@ -1,27 +1,29 @@
 import SwiftUI
 import MapKit
 
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// MARK: - Main View: RecommendationView
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 struct RecommendationView: View {
+    // --- 1. Properties ---
     @StateObject private var viewModel = SacredPlaceViewModel()
     @EnvironmentObject var checkInStore: CheckInStore
     @EnvironmentObject var language: AppLanguage
     @EnvironmentObject var flowManager: MuTeLuFlowManager
     @EnvironmentObject var locationManager: LocationManager
-    @EnvironmentObject var likeStore: LikeStore
+    @EnvironmentObject var userActionStore: UserActionStore // 👈 เพิ่มเข้ามา
+    
     @AppStorage("loggedInEmail") var loggedInEmail: String = ""
     
-    // @State สำหรับเก็บผลลัพธ์การแนะนำ (ชุดใหม่)
-    @State private var likedRecommendedPlaces: [SacredPlace] = []
-    @State private var checkInRecommendedPlaces: [SacredPlace] = []
-    @State private var likeSourcePlaceName: String?
-    @State private var checkInSourcePlaceName: String?
+    // State สำหรับเก็บผลลัพธ์ (เหลือชุดเดียว)
+    @State private var recommendedPlaces: [SacredPlace] = []
     
-    // State ใหม่สำหรับเก็บ "ระยะทางขับรถจริง" ที่คำนวณแล้ว
+    // State สำหรับระยะทาง (เหมือนเดิม)
     @State private var routeDistances: [UUID: CLLocationDistance] = [:]
     
+    // --- 2. Body ---
     var body: some View {
         ScrollView {
-            // ... ในไฟล์ RecommendationView.swift ...
             VStack(alignment: .leading, spacing: 16) {
                 BackButton()
                 
@@ -31,35 +33,21 @@ struct RecommendationView: View {
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
                 
-                // --- Section 1: แนะนำจาก "การชอบ" ---
-                if !likedRecommendedPlaces.isEmpty, let sourceName = likeSourcePlaceName {
+                // --- Section: แนะนำสำหรับคุณ (จาก Profile) ---
+                if !recommendedPlaces.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text(language.localized("เพราะคุณชอบ: \(sourceName)", "Because you liked: \(sourceName)"))
+                        Text(language.localized("แนะนำสำหรับคุณโดยเฉพาะ", "Specially Recommended for You"))
                             .font(.headline)
                             .padding(.horizontal)
                         
-                        ForEach(likedRecommendedPlaces) { place in
+                        ForEach(recommendedPlaces) { place in
                             PlaceRow(place: place, routeDistance: routeDistances[place.id])
                         }
                     }
                     Divider().padding()
                 }
                 
-                // --- Section 2: แนะนำจาก "การเช็คอินล่าสุด" ---
-                if !checkInRecommendedPlaces.isEmpty, let sourceName = checkInSourcePlaceName {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(language.localized("เพราะคุณเพิ่งไป: \(sourceName)", "Because you recently visited: \(sourceName)"))
-                            .font(.headline)
-                            .padding(.horizontal)
-                        
-                        ForEach(checkInRecommendedPlaces) { place in
-                            PlaceRow(place: place, routeDistance: routeDistances[place.id])
-                        }
-                    }
-                    Divider().padding()
-                }
-                
-                // Section "สถานที่ทั้งหมด" (เหมือนเดิม)
+                // --- Section: สถานที่ทั้งหมด ---
                 VStack(alignment: .leading, spacing: 8) {
                     Text(language.localized("สถานที่ทั้งหมด", "All Places"))
                         .font(.headline)
@@ -74,28 +62,53 @@ struct RecommendationView: View {
         }
         .background(Color(.systemGroupedBackground))
         .onAppear {
-            // MARK: - โค้ดสำหรับทดสอบใน App Preview
-            // บรรทัดนี้จะจำลองตำแหน่งเพื่อให้เราเห็นผลลัพธ์ใน Preview
-            // (เมื่อรันบนเครื่องจริง ควรลบออกเพื่อให้ใช้ GPS จริง)
             locationManager.userLocation = CLLocation(latitude: 13.738444, longitude: 100.531750)
-            
             generateRecommendations()
-            // เมื่อหน้าจอแสดง ให้เริ่มคำนวณระยะทางขับรถจริง
             Task { await calculateAllRouteDistances() }
         }
         .onChange(of: locationManager.userLocation) {
-            // ถ้าตำแหน่งผู้ใช้อัปเดต ให้คำนวณใหม่
             Task { await calculateAllRouteDistances() }
+        }
+    } // <--- body จบตรงนี้
+    
+    
+    // --- 3. Functions (อยู่หลัง body แต่อยู่ใน struct) ---
+    
+    private func generateRecommendations() {
+        // 1. สร้าง User Tag Profile จากทุกพฤติกรรม
+        var userProfile: [String: Int] = [:]
+        let userActions = userActionStore.getActions(for: loggedInEmail)
+        
+        for action in userActions {
+            // หาข้อมูลสถานที่จาก placeID ใน action
+            if let place = viewModel.places.first(where: { $0.id.uuidString == action.placeID }) {
+                // นำคะแนนของ action ไปบวกให้กับทุก tag ของสถานที่นั้น
+                for tag in place.tags {
+                    userProfile[tag, default: 0] += action.actionType.rawValue
+                }
+            }
+        }
+        
+        // 2. สร้างคำแนะนำจาก Profile ที่ได้
+        let engine = RecommendationEngine(places: viewModel.places)
+        let allVisitedIDs = checkInStore.records(for: loggedInEmail).map { UUID(uuidString: $0.placeID) }.compactMap { $0 }
+        
+        // ถ้าโปรไฟล์มีข้อมูล (ผู้ใช้เคยมี activity) ให้แนะนำตามโปรไฟล์
+        if !userProfile.isEmpty {
+            self.recommendedPlaces = engine.getRecommendations(for: userProfile, excluding: allVisitedIDs, top: 5)
+        } else {
+            // ถ้าเป็นผู้ใช้ใหม่ที่ยังไม่มีข้อมูลเลย ให้แนะนำสถานที่ Top Rated ไปก่อน
+            self.recommendedPlaces = Array(viewModel.places.sorted { $0.rating > $1.rating }.prefix(3))
         }
     }
     
-    // ฟังก์ชันสำหรับคำนวณระยะทางขับรถจริง (ทำงานเบื้องหลัง)
     private func calculateAllRouteDistances() async {
         guard let userLocation = locationManager.userLocation else { return }
         
+        let placesToCalculate = viewModel.places
         let results = await RouteDistanceService.shared.batchDistances(
             from: userLocation.coordinate,
-            places: viewModel.places,
+            places: placesToCalculate,
             mode: .driving
         )
         
@@ -107,44 +120,12 @@ struct RecommendationView: View {
         self.routeDistances = newDistances
     }
     
-    private func generateRecommendations() {
-        let engine = RecommendationEngine(places: viewModel.places)
-        let allVisitedIDs = checkInStore.records(for: loggedInEmail).map { UUID(uuidString: $0.placeID) }.compactMap { $0 }
-        
-        // --- 1. สร้างคำแนะนำจาก "การชอบ" ---
-        let userLikes = likeStore.likes.filter { $0.memberEmail == loggedInEmail }
-        if let latestLikedRecord = userLikes.last,
-           let sourcePlace = viewModel.places.first(where: { $0.id.uuidString == latestLikedRecord.placeID }) {
-            
-            self.likedRecommendedPlaces = engine.getRecommendations(basedOn: sourcePlace, excluding: allVisitedIDs)
-            self.likeSourcePlaceName = language.localized(sourcePlace.nameTH, sourcePlace.nameEN)
-        } else {
-            // ถ้าไม่เคย Like เลย ก็เคลียร์ค่าทิ้ง
-            self.likedRecommendedPlaces = []
-            self.likeSourcePlaceName = nil
-        }
-        
-        // --- 2. สร้างคำแนะนำจาก "การเช็คอิน" ---
-        let userCheckIns = checkInStore.records(for: loggedInEmail).sorted(by: { $0.date > $1.date })
-        if let latestCheckIn = userCheckIns.first,
-           let sourcePlace = viewModel.places.first(where: { $0.id.uuidString == latestCheckIn.placeID }) {
-            
-            // **Pro Tip:** ตอนหาคำแนะนำจาก Check-in ให้ Exclude สถานที่ที่แนะนำไปแล้วใน List ของ Like
-            // เพื่อไม่ให้มีสถานที่ซ้ำกันใน 2 Section
-            let idsToExclude = allVisitedIDs + likedRecommendedPlaces.map { $0.id }
-            
-            self.checkInRecommendedPlaces = engine.getRecommendations(basedOn: sourcePlace, excluding: idsToExclude)
-            self.checkInSourcePlaceName = language.localized(sourcePlace.nameTH, sourcePlace.nameEN)
-        } else {
-            // ถ้าไม่เคย Check-in เลย ก็เคลียร์ค่าทิ้ง
-            self.checkInRecommendedPlaces = []
-            self.checkInSourcePlaceName = nil
-        }
-    }
-}
+} // <--- ปีกกาปิดสุดท้ายของ struct RecommendationView
 
-// MARK: - Subviews (PlaceRow ที่แก้ไขปัญหา infinity แล้ว)
 
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// MARK: - Subviews (อยู่นอก struct หลัก)
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 struct PlaceRow: View {
     let place: SacredPlace
     let routeDistance: CLLocationDistance?
@@ -177,10 +158,8 @@ struct PlaceRow: View {
                     HStack(spacing: 8) {
                         if let distance = routeDistance {
                             if distance != .infinity {
-                                // กรณีคำนวณสำเร็จ: แสดงระยะทางและรูปรถ
                                 chip(text: formatDistance(distance), icon: "car.fill")
                             } else {
-                                // กรณีคำนวณล้มเหลว: แสดง N/A และรูป wifi ขาด
                                 chip(text: "N/A", icon: "wifi.slash")
                             }
                         }
@@ -206,7 +185,6 @@ struct PlaceRow: View {
     }
 }
 
-// chip function (เหมือนเดิม)
 private func chip(text: String, icon: String) -> some View {
     HStack(spacing: 4) {
         Image(systemName: icon)

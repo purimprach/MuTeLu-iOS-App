@@ -38,7 +38,9 @@ struct MenuButton: View {
             }
             .padding()
             .frame(maxWidth: .infinity, minHeight: 150)
-            .background(.white)
+            // --- 👇 แก้ไขบรรทัดนี้ ---
+            .background(Color(.secondarySystemBackground))
+            // --------------------
             .cornerRadius(20)
             .shadow(color: .black.opacity(0.15), radius: 10, x: 0, y: 5)
             .scaleEffect(isPressed ? 0.97 : 1.0)

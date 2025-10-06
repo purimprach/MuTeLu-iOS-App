@@ -7,6 +7,8 @@ struct AppView: View {
     @EnvironmentObject var memberStore: MemberStore
     @StateObject var checkInStore = CheckInStore()
     @AppStorage("loggedInEmail") private var loggedInEmail = ""
+    @StateObject var likeStore = LikeStore()
+    @StateObject var userActionStore = UserActionStore()
     
     private var activeMember: Member? {
         memberStore.members.first { $0.email == loggedInEmail }
@@ -48,14 +50,17 @@ struct AppView: View {
                 .environmentObject(checkInStore)
                 .environmentObject(memberStore)
                 .environmentObject(locationManager)
-            
+        
         case .recommendation:
             RecommendationView()
-                .environmentObject(language)
                 .environmentObject(flowManager)
-                .environmentObject(checkInStore)
-                .environmentObject(memberStore)
+                .environmentObject(language)
                 .environmentObject(locationManager)
+                .environmentObject(memberStore)
+                .environmentObject(checkInStore)
+                .environmentObject(likeStore)
+                .environmentObject(userActionStore)
+            
             
         case .sacredDetail(let place):
             SacredPlaceDetailView(place: place)

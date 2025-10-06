@@ -18,7 +18,7 @@ struct MainMenuView: View {
     
     var body: some View {
         ScrollView {
-            VStack(spacing: 16) {
+            LazyVStack(spacing: 16) {
                 header
                 BannerStack(showBanner: $showBanner, currentMember: currentMember)
                     .environmentObject(language)
