@@ -20,10 +20,6 @@ struct SacredPlaceDetailView: View {
     @State private var isLiked: Bool = false
     @State private var isBookmarked: Bool = false
     
-    @State private var refreshTrigger = UUID()
-    @State private var countdownTimer: Timer?
-    @State private var timeRemaining: TimeInterval = 0
-    
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
@@ -143,31 +139,30 @@ struct SacredPlaceDetailView: View {
                     }
                     .padding(.horizontal)
                     
-                    // Check-in Button Logic
-                    VStack {
-                        if checkInStore.hasCheckedInRecently(email: loggedInEmail, placeID: place.id.uuidString) {
-                            VStack(spacing: 8) {
-                                Label(language.localized("เช็คอินแล้ว", "Checked-in"), systemImage: "checkmark.seal.fill")
-                                    .foregroundColor(.green)
-                                
-                                if timeRemaining > 0 {
+                    // MARK: - Check-in Button Logic (ใช้โค้ดใหม่นี้แทนของเก่า)
+                    TimelineView(.periodic(from: .now, by: 1.0)) { timeline in
+                        VStack {
+                            // คำนวณเวลาที่เหลือ ณ ปัจจุบัน
+                            let remaining = checkInStore.timeRemainingUntilNextCheckIn(email: loggedInEmail, placeID: place.id.uuidString) ?? 0
+                            
+                            if remaining > 0 {
+                                // --- กรณีที่ยังเช็คอินซ้ำไม่ได้ ---
+                                VStack(spacing: 8) {
+                                    Label(language.localized("เช็คอินแล้ว", "Checked-in"), systemImage: "checkmark.seal.fill")
+                                        .foregroundColor(.green)
                                     Text(language.localized("เช็คอินครั้งถัดไปได้ในอีก:", "Next check-in in:"))
-                                    Text(formatTime(timeRemaining))
+                                    Text(formatTime(remaining))
                                         .font(.system(.headline, design: .monospaced).bold())
                                         .foregroundColor(.orange)
-                                } else {
-                                    Text(language.localized("สามารถเช็คอินใหม่ได้แล้ว", "Ready to check-in again"))
-                                        .font(.caption)
-                                        .foregroundColor(.blue)
                                 }
-                            }
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                            .background(Color.gray.opacity(0.2))
-                            .cornerRadius(12)
-                        } else if isUserNearPlace() {
-                            Button(action: {
-                                if !checkInStore.hasCheckedInRecently(email: loggedInEmail, placeID: place.id.uuidString) {
+                                .padding()
+                                .frame(maxWidth: .infinity)
+                                .background(Color.gray.opacity(0.2))
+                                .cornerRadius(12)
+                                
+                            } else if isUserNearPlace() {
+                                // --- กรณีที่เช็คอินได้ ---
+                                Button(action: {
                                     let newRecord = CheckInRecord(
                                         placeID: place.id.uuidString,
                                         placeNameTH: place.nameTH,
@@ -179,43 +174,40 @@ struct SacredPlaceDetailView: View {
                                         longitude: place.longitude
                                     )
                                     checkInStore.add(record: newRecord)
-                                    
-                                    // (Optional) Update tag scores
                                     if let userIndex = memberStore.members.firstIndex(where: { $0.email == loggedInEmail }) {
                                         for tag in place.tags {
-                                              memberStore.members[userIndex].tagScores[tag, default: 0] += 1
+                                            memberStore.members[userIndex].tagScores[tag, default: 0] += 1
                                         }
                                     }
-                                    
-                                    refreshTrigger = UUID()
                                     showCheckinAlert = true
+                                }) {
+                                    Label(language.localized("เช็คอินเพื่อรับแต้ม", "Check-in to earn points"), systemImage: "checkmark.seal.fill")
+                                        .foregroundColor(.white)
+                                        .padding()
+                                        .frame(maxWidth: .infinity)
+                                        .background(Color.green)
+                                        .cornerRadius(12)
                                 }
-                            }) {
-                                Label(language.localized("เช็คอินเพื่อรับแต้ม", "Check-in to earn points"), systemImage: "checkmark.seal.fill")
-                                    .foregroundColor(.white)
+                                .alert(isPresented: $showCheckinAlert) {
+                                    Alert(
+                                        title: Text("✅ \(language.localized("สำเร็จ", "Success"))"),
+                                        message: Text(language.localized("คุณได้เช็คอินเรียบร้อยแล้ว! รับ 15 แต้ม", "You have checked in! Received 15 points")),
+                                        dismissButton: .default(Text(language.localized("ตกลง", "OK")))
+                                    )
+                                }
+                                
+                            } else {
+                                // --- กรณีที่อยู่นอกระยะ ---
+                                Text("📍 \(language.localized("คุณยังอยู่ไกลเกินกว่าจะเช็คอินได้", "You are too far to check-in"))")
+                                    .foregroundColor(.gray)
                                     .padding()
                                     .frame(maxWidth: .infinity)
-                                    .background(Color.green)
+                                    .background(Color(.systemGray5))
                                     .cornerRadius(12)
                             }
-                            .alert(isPresented: $showCheckinAlert) {
-                                Alert(
-                                    title: Text("✅ \(language.localized("สำเร็จ", "Success"))"),
-                                    message: Text(language.localized("คุณได้เช็คอินเรียบร้อยแล้ว! รับ 15 แต้ม", "You have checked in! Received 15 points")),
-                                    dismissButton: .default(Text(language.localized("ตกลง", "OK")))
-                                )
-                            }
-                        } else {
-                            Text("📍 \(language.localized("คุณยังอยู่ไกลเกินกว่าจะเช็คอินได้", "You are too far to check-in"))")
-                                .foregroundColor(.gray)
-                                .padding()
-                                .frame(maxWidth: .infinity)
-                                .background(Color(.systemGray5))
-                                .cornerRadius(12)
                         }
+                        .padding(.horizontal)
                     }
-                    .padding(.horizontal)
-                    .id(refreshTrigger)
                     
                     // Contact Button
                     Button(action: {
@@ -247,10 +239,6 @@ struct SacredPlaceDetailView: View {
         .onAppear {
             isLiked = likeStore.isLiked(placeID: place.id.uuidString, by: loggedInEmail)
             isBookmarked = bookmarkStore.isBookmarked(placeID: place.id.uuidString, by: loggedInEmail)
-            startCountdownTimer()
-        }
-        .onDisappear {
-            stopCountdownTimer()
         }
     }
     
@@ -291,35 +279,11 @@ struct SacredPlaceDetailView: View {
         }
     }
     
-    // MARK: - Timer Functions
-    func startCountdownTimer() {
-        updateTimeRemaining()
-        countdownTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
-            updateTimeRemaining()
-        }
-    }
-    
-    func stopCountdownTimer() {
-        countdownTimer?.invalidate()
-        countdownTimer = nil
-    }
-    
-    func updateTimeRemaining() {
-        if let remaining = checkInStore.timeRemainingUntilNextCheckIn(email: loggedInEmail, placeID: place.id.uuidString) {
-            timeRemaining = remaining
-            if remaining <= 0 {
-                stopCountdownTimer()
-                refreshTrigger = UUID()
-            }
-        } else {
-            timeRemaining = 0
-        }
-    }
-    
-    func formatTime(_ timeInterval: TimeInterval) -> String {
-        let hours = Int(timeInterval) / 3600
-        let minutes = Int(timeInterval) / 60 % 60
-        let seconds = Int(timeInterval) % 60
+    private func formatTime(_ timeInterval: TimeInterval) -> String {
+        let interval = max(0, timeInterval)
+        let hours = Int(interval) / 3600
+        let minutes = Int(interval) / 60 % 60
+        let seconds = Int(interval) % 60
         return String(format: "%02i:%02i:%02i", hours, minutes, seconds)
     }
 }
