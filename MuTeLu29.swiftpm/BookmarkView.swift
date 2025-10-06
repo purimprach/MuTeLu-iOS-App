@@ -4,7 +4,7 @@ struct BookmarkView: View {
     @EnvironmentObject var language: AppLanguage
     @EnvironmentObject var flowManager: MuTeLuFlowManager
     @EnvironmentObject var bookmarkStore: BookmarkStore
-    @StateObject private var viewModel = SacredPlaceViewModel() // ใช้เพื่อดึงข้อมูลสถานที่ทั้งหมด
+    @StateObject private var viewModel = SacredPlaceViewModel()
     @AppStorage("loggedInEmail") private var loggedInEmail: String = ""
     
     // ดึงรายการที่บันทึกไว้ของผู้ใช้คนปัจจุบัน
@@ -14,24 +14,9 @@ struct BookmarkView: View {
     
     var body: some View {
         VStack {
-            // --- Header ---
-            HStack {
-                Button(action: {
-                    // ใช้ flowManager เพื่อย้อนกลับไปหน้า Home หรือ Profile ก็ได้
-                    // ในที่นี้เราจะกลับไป Home ก่อน
-                    flowManager.currentScreen = .home
-                }) {
-                    Label(language.localized("ย้อนกลับ", "Back"), systemImage: "chevron.left")
-                }
-                Spacer()
-            }
-            .padding()
+            // vvv ส่วนที่แก้ไข vvv
+            // --- ลบ Header และปุ่ม "ย้อนกลับ" ที่สร้างเองออกไปจากตรงนี้ ---
             
-            Text("📍 \(language.localized("สถานที่ที่บันทึกไว้", "Bookmarked Places"))")
-                .font(.title2.bold())
-                .padding(.bottom)
-            
-            // --- List of Bookmarks ---
             if bookmarkedRecords.isEmpty {
                 Spacer()
                 Text(language.localized("คุณยังไม่ได้บันทึกสถานที่ใดๆ", "You haven't bookmarked any places yet."))
@@ -51,10 +36,14 @@ struct BookmarkView: View {
                 .listStyle(.plain)
             }
         }
+        // vvv ส่วนที่แก้ไข vvv
+        // --- ตั้งชื่อหัวข้อของหน้าให้สวยงาม ---
+        .navigationTitle("📍 \(language.localized("สถานที่บันทึกไว้", "Bookmarked Places"))")
+        .navigationBarTitleDisplayMode(.inline) // ทำให้หัวข้อเล็กลง
     }
 }
 
-// --- Subview สำหรับแสดงผล 1 รายการ ---
+// --- Subview สำหรับแสดงผล 1 รายการ (ไม่ต้องแก้ไข) ---
 struct BookmarkRow: View {
     let place: SacredPlace
     let record: BookmarkRecord

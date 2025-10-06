@@ -118,6 +118,11 @@ struct AppView: View {
         case .bookmarks: 
             BookmarkView()
             
+        case .categorySearch:
+            NavigationStack {
+                CategorySearchView()
+            }
+            
         @unknown default:
             Text("Coming soon...")
         }

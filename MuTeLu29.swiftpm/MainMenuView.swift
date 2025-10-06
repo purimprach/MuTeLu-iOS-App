@@ -1,6 +1,6 @@
 import SwiftUI
 import CoreLocation
-import MapKit    
+import MapKit
 
 // MARK: - MainMenuView
 struct MainMenuView: View {
@@ -360,15 +360,18 @@ struct StarRatingView: View {
         }
     }
 }
-// MARK: - Quick actions grid (เก็บรวมท้ายหน้า)
+
+// vvvv --- ส่วนที่แก้ไข --- vvvv
+// MARK: - Quick actions grid (แสดงทั้งหมด)
 private struct QuickActionsGrid: View {
     @EnvironmentObject var language: AppLanguage
     let flowManager: MuTeLuFlowManager
-    @State private var showAll = false
     
+    // รายการเมนูทั้งหมด
     private var items: [(th: String, en: String, icon: String, screen: MuTeLuScreen)] {
         [
-            ("แนะนำสถานที่ศักดิ์สิทธิ์สำหรับคุณ","Recommended for You","wand.and.stars",.recommenderForYou),
+            ("ค้นหาตามหมวด", "Category Search", "magnifyingglass.circle.fill", .categorySearch),
+            ("วันสำคัญและวัดที่เหมาะกับวันนี้","Today's Events & Temples","wand.and.stars",.recommenderForYou),
             ("แนะนำสถานที่ศักดิ์สิทธิ์รอบจุฬาฯ","Sacred Places around Chula","building.columns", .recommendation),
             ("ทำนายเบอร์โทร","Phone Fortune","phone.circle", .phoneFortune),
             ("คะแนนแต้มบุญ","Merit Points","star.circle", .meritPoints),
@@ -384,22 +387,12 @@ private struct QuickActionsGrid: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text(language.localized("เครื่องมือด่วน", "Quick actions"))
-                    .font(.headline)
-                Spacer()
-                Button(showAll ? language.localized("ย่อ", "Collapse")
-                       : language.localized("ดูทั้งหมด", "See all")) {
-                    withAnimation(.easeInOut) { showAll.toggle() }
-                }
-                       .font(.subheadline)
-            }
+            // ลบ HStack ที่มี Title และปุ่ม "ดูทั้งหมด" ออกไป
             
-            let visible = showAll ? items : Array(items.prefix(4))
-            
+            // ใช้ LazyVGrid เพื่อแสดงผลเมนูทั้งหมด
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                ForEach(visible.indices, id: \.self) { i in
-                    let it = visible[i]
+                ForEach(items.indices, id: \.self) { i in
+                    let it = items[i]
                     MenuButton(
                         titleTH: it.th,
                         titleEN: it.en,
@@ -413,3 +406,4 @@ private struct QuickActionsGrid: View {
         }
     }
 }
+// ^^^^ --- สิ้นสุดส่วนที่แก้ไข --- ^^^^

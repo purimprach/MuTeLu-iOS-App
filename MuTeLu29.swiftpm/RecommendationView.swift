@@ -10,10 +10,8 @@ struct RecommendationView: View {
     @EnvironmentObject var language: AppLanguage
     @EnvironmentObject var flowManager: MuTeLuFlowManager
     @EnvironmentObject var locationManager: LocationManager
-    
-    // --- vvv จุดที่แก้ไข vvv ---
-    @EnvironmentObject var activityStore: ActivityStore // ✅ เปลี่ยนมาใช้ ActivityStore
-    // --- ^^^ จุดที่แก้ไข ^^^ ---
+    @EnvironmentObject var activityStore: ActivityStore
+    @EnvironmentObject var memberStore: MemberStore
     
     @AppStorage("loggedInEmail") var loggedInEmail: String = ""
     
@@ -71,41 +69,46 @@ struct RecommendationView: View {
     // --- 3. Functions ---
     
     private func generateRecommendations() {
+        // --- ส่วนที่ 1: สร้างโปรไฟล์ความสนใจส่วนตัว (เหมือนเดิม) ---
         var userProfile: [String: Int] = [:]
-        
-        // --- vvv จุดที่แก้ไข vvv ---
-        // ดึงข้อมูลจาก activityStore แทน UserActionStore
         let userActivities = activityStore.activities(for: loggedInEmail)
         
         for activity in userActivities {
             if let place = viewModel.places.first(where: { $0.id.uuidString == activity.placeID }) {
-                // กำหนดคะแนนตามประเภทของ Activity
                 let score: Int
                 switch activity.type {
-                case .checkIn:
-                    score = 10
-                case .bookmarked:
-                    score = 5
-                case .liked:
-                    score = 3
-                case .unliked, .unbookmarked:
-                    score = -2 // ให้คะแนนติดลบเมื่อไม่ชอบหรือไม่สนใจ
+                case .checkIn: score = 10
+                case .bookmarked: score = 5
+                case .liked: score = 3
+                case .unliked, .unbookmarked: score = -2
                 }
-                
                 for tag in place.tags {
                     userProfile[tag, default: 0] += score
                 }
             }
         }
-        // --- ^^^ จุดที่แก้ไข ^^^ ---
         
-        let engine = RecommendationEngine(places: viewModel.places)
+        // --- ส่วนที่ 2: เลือกระบบแนะนำตามโปรไฟล์ ---
         let allVisitedIDs = activityStore.checkInRecords(for: loggedInEmail).map { UUID(uuidString: $0.placeID) }.compactMap { $0 }
         
+        // **เงื่อนไข**: ถ้ามีโปรไฟล์ความสนใจ (เคยมีกิจกรรม) ให้ใช้ระบบแนะนำแบบเก่า (ตาม Tag)
         if !userProfile.isEmpty {
+            let engine = RecommendationEngine(places: viewModel.places)
             self.recommendedPlaces = engine.getRecommendations(for: userProfile, excluding: allVisitedIDs, top: 3)
-        } else {
-            self.recommendedPlaces = Array(viewModel.places.sorted { $0.rating > $1.rating }.prefix(3))
+        } 
+        // **เงื่อนไข**: ถ้ายังไม่มีโปรไฟล์ (เป็นผู้ใช้ใหม่) ให้ใช้ระบบ NILR (ISF)
+        else {
+            // สร้าง instance ของ NILRRecommender ที่นี่
+            let nilrRecommender = NILR_Recommender(
+                members: memberStore.members,
+                places: viewModel.places,
+                activities: activityStore.activities
+            )
+            // คำนวณคะแนน
+            let scores = nilrRecommender.calculateScores()
+            
+            // นำผลลัพธ์จาก ISF (ความนิยม) มาใช้แนะนำ
+            self.recommendedPlaces = scores.isf.prefix(3).map { $0.place }
         }
     }
     
